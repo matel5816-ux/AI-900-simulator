@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-900 大哥中特製模擬考場</title>
+  <!-- 載入必要套件 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 這裡保留你原本提供的 CSS 樣式 */
+    .exam-content-area { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 16px; color: #1e293b; line-height: 1.6; }
+    .exam-content-area li { margin-bottom: 12px; padding: 12px 16px; border-radius: 4px; background-color: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: flex-start; }
+    /* ... 為了簡潔，中間省略部分樣式，實際貼上時請包含你原本所有的 styles ... */
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- 使用 Babel 讓瀏覽器讀懂你的 React 程式碼 -->
+  <script type="text/babel">
+    // 將 React 的 Hook 提取出來
+    const { useState, useEffect, useRef } = React;
+
+    // 這裡貼入你原本的那大段 React 程式碼 (function AI900PearsonVueSimulator ... )
+    // 注意：要把原本最上方的 import 和最下方的 export 刪掉
+    
+    /* [在此貼入你原本產出的程式碼內容，但刪除 import/export 語句] */
+
+    // 最後加上這一行來啟動程式
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AI900PearsonVueSimulator />);
+  </script>
+</body>
+</html>
