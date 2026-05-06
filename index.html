@@ -3,50 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI-900 模擬考場</title>
-  <!-- 引入基礎套件 -->
+  <title>AI-900 模擬考</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .exam-content-area { font-family: system-ui, sans-serif; line-height: 1.6; }
-    .exam-content-area li { margin-bottom: 10px; padding: 10px; border-radius: 5px; background: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: center; }
-    .exam-content-area input { margin-right: 10px; width: 1.2rem; height: 1.2rem; }
+    .exam-content { font-family: sans-serif; }
+    .option-item { margin-bottom: 8px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; display: flex; align-items: center; cursor: pointer; }
+    .option-item:hover { background: #f1f5f9; }
+    input[type="radio"] { width: 1.2rem; height: 1.2rem; margin-right: 12px; }
   </style>
 </head>
-<body class="bg-gray-100">
+<body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState } = React;
 
-    // 模擬題目資料
-    const QUESTIONS = [
-      {
-        id: "q250",
+    // 主程式開始
+    function AI900PearsonVueSimulator() {
+      const [view, setView] = useState('home');
+      
+      const sampleQuestion = {
         title: "第二百五十題",
         body: "您應該使用下列哪種服務，從已掃描的檔中自動識取文字、索引鍵/值組以及資料表資料？",
-        options: ["表格辨識器 (Form Recognizer)", "文字分析", "自訂視覺", "Language Understanding (LUIS)"],
-        answer: 0,
-        rationale: "解析：這是 Azure AI 文件智慧（先前稱為表格辨識器）的核心功能。"
-      }
-    ];
-
-    function App() {
-      const [view, setView] = useState('home');
-      const [curr, setCurr] = useState(0);
-      const [showAns, setShowAns] = useState(false);
+        options: ["A. 表格辨識器 (Form Recognizer)", "B. 文字分析", "C. 自訂視覺", "D. LUIS"],
+        correct: "A"
+      };
 
       if (view === 'home') {
         return (
-          <div className="flex flex-col items-center justify-center min-h-screen">
-            <div className="bg-white p-8 rounded-xl shadow-xl max-w-sm w-full text-center border-t-8 border-blue-600">
-              <h1 className="text-3xl font-black text-gray-800 mb-2">AI-900</h1>
-              <p className="text-gray-500 mb-8">Azure AI Fundamentals 模擬考</p>
+          <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+            <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-sm w-full border-t-8 border-blue-600">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">AI-900</h1>
+              <p className="text-gray-500 mb-8">Azure AI 基礎模擬考場</p>
               <button 
                 onClick={() => setView('quiz')}
-                className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 shadow-lg active:scale-95 transition"
+                className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition transform active:scale-95"
               >
                 開始練習
               </button>
@@ -55,47 +49,33 @@
         );
       }
 
-      const q = QUESTIONS[curr];
-
       return (
-        <div className="max-w-2xl mx-auto py-10 px-4">
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+        <div className="max-w-2xl mx-auto py-10 px-4 exam-content">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
             <div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
-              <span className="font-bold">題目 {curr + 1} / {QUESTIONS.length}</span>
-              <button onClick={() => setView('home')} className="text-sm bg-blue-500 px-2 py-1 rounded">退出</button>
+              <span className="font-bold underline decoration-2">Question 1</span>
+              <button onClick={() => setView('home')} className="text-xs bg-blue-500 px-2 py-1 rounded">返回首頁</button>
             </div>
             
-            <div className="p-8 exam-content-area">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">{q.title}</h2>
-              <p className="text-gray-700 mb-6 text-lg">{q.body}</p>
-              <ul>
-                {q.options.map((opt, i) => (
-                  <li key={i}>
-                    <input type="radio" name="opt" id={`o${i}`} />
-                    <label htmlFor={`o${i}`} className="cursor-pointer w-full">{opt}</label>
-                  </li>
+            <div className="p-8">
+              <h2 className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-widest">Multiple Choice</h2>
+              <p className="text-gray-800 mb-8 text-xl font-medium leading-relaxed">{sampleQuestion.body}</p>
+              
+              <div className="space-y-3">
+                {sampleQuestion.options.map((opt, i) => (
+                  <label key={i} className="option-item">
+                    <input type="radio" name="q" />
+                    <span className="text-gray-700">{opt}</span>
+                  </label>
                 ))}
-              </ul>
-
-              {showAns && (
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 animate-pulse">
-                  <strong>正確答案：{q.options[q.answer]}</strong><br/>
-                  <small>{q.rationale}</small>
-                </div>
-              )}
+              </div>
             </div>
 
             <div className="p-6 bg-gray-50 border-t flex gap-4">
-              <button 
-                onClick={() => setShowAns(!showAns)}
-                className="flex-1 py-3 border border-gray-300 rounded-lg font-bold text-gray-600 hover:bg-white"
-              >
-                {showAns ? '隱藏解析' : '查看答案'}
+              <button onClick={() => alert("正確答案是 A")} className="flex-1 py-4 border-2 border-blue-600 text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition">
+                查看答案
               </button>
-              <button 
-                onClick={() => { alert('這是一個題目的展示版本，你可以繼續添加更多題目到 QUESTIONS 數組中！'); }}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
-              >
+              <button onClick={() => alert("這是一個測試題目，恭喜你成功跑起來了！")} className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition">
                 下一題
               </button>
             </div>
@@ -104,8 +84,9 @@
       );
     }
 
+    // 啟動渲染
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    root.render(<AI900PearsonVueSimulator />);
   </script>
 </body>
 </html>
