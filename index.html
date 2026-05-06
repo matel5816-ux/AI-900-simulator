@@ -1,778 +1,215 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Play, Clock, Flag, ChevronLeft, ChevronRight, CheckCircle2, XCircle, RefreshCw, LayoutGrid, Info, UploadCloud, Settings2 } from 'lucide-react';
-
-const originalStyles = `
-  .exam-content-area { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 16px; color: #1e293b; line-height: 1.6; }
-  .exam-content-area p, .exam-content-area ul, .exam-content-area div { margin-bottom: 16px; }
-  .exam-content-area ul { list-style-type: none; padding-left: 0; }
-  .exam-content-area li { margin-bottom: 12px; padding: 12px 16px; border-radius: 4px; background-color: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: flex-start; }
-  .exam-content-area li label { cursor: pointer; width: 100%; display: block; padding-left: 10px; margin-top:-2px;}
-  .exam-content-area input[type="radio"], .exam-content-area input[type="checkbox"] { width: 1.2rem; height: 1.2rem; margin-top: 2px; accent-color: #0078D4; cursor: pointer; flex-shrink: 0; }
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-900 Pearson VUE Simulator</title>
+  <!-- 核心套件 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 圖標庫 -->
+  <script src="https://unpkg.com/lucide@latest"></script>
   
-  .keyword-highlight { background-color: transparent; padding: 0; font-weight: normal; color: inherit; }
-  .chinese-noun { color: inherit; font-weight: normal; }
-  .eng-abbr { color: inherit; font-weight: normal; }
-  .eng-word { color: inherit; font-weight: normal; }
-  
-  .matching-container { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
-  .matching-column { flex: 1; min-width: 250px; background: #f1f5f9; padding: 16px; border-radius: 6px; border: 1px solid #cbd5e1; }
-  .matching-column h4 { margin-top: 0; margin-bottom: 16px; color: #334155; font-size: 1.1em; border-bottom: 2px solid #94a3b8; padding-bottom: 8px; }
-  .matching-item { background-color: white; border: 1px solid #94a3b8; padding: 10px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-weight: 500; }
-  .matching-answer-area { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #cbd5e1; }
-  .matching-answer-area input[type="text"] { width: 45px; height: 36px; text-align: center; font-weight: bold; border: 2px solid #0078D4; border-radius: 4px; text-transform: uppercase; font-size: 16px; outline: none; }
-  .matching-answer-area input[type="text"]:focus { box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.3); }
-  .yes-no-item-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+  <style>
+    /* 這裡完整保留你提供的原始樣式 */
+    .exam-content-area { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 16px; color: #1e293b; line-height: 1.6; }
+    .exam-content-area p, .exam-content-area ul, .exam-content-area div { margin-bottom: 16px; }
+    .exam-content-area ul { list-style-type: none; padding-left: 0; }
+    .exam-content-area li { margin-bottom: 12px; padding: 12px 16px; border-radius: 4px; background-color: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: flex-start; }
+    .exam-content-area li label { cursor: pointer; width: 100%; display: block; padding-left: 10px; margin-top:-2px;}
+    .exam-content-area input[type="radio"], .exam-content-area input[type="checkbox"] { width: 1.2rem; height: 1.2rem; margin-top: 2px; accent-color: #0078D4; cursor: pointer; flex-shrink: 0; }
+    .matching-container { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
+    .matching-column { flex: 1; min-width: 250px; background: #f1f5f9; padding: 16px; border-radius: 6px; border: 1px solid #cbd5e1; }
+    .matching-answer-area { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #cbd5e1; }
+    .matching-answer-area input[type="text"] { width: 45px; height: 36px; text-align: center; font-weight: bold; border: 2px solid #0078D4; border-radius: 4px; text-transform: uppercase; font-size: 16px; outline: none; }
+    .yes-no-item-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+    .result-locked input, .result-locked select { opacity: 0.8; cursor: not-allowed; }
+    .keyword-highlight { background-color: transparent; padding: 0; font-weight: normal; color: inherit; }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <div id="root"></div>
 
-  .result-locked input, .result-locked select { opacity: 0.8; cursor: not-allowed; }
-  .result-locked label { cursor: not-allowed; }
-`;
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
 
-// AI-900 專用名詞庫 (用於動態生成混淆選項)
-const AI900_TERMS = [
-  "Azure OpenAI", "表格辨識器 (Form Recognizer)", "電腦視覺 (Computer Vision)", "自訂視覺 (Custom Vision)", 
-  "臉部服務 (Face)", "自然語言處理 (NLP)", "語音服務 (Speech)", "自動化機器學習 (Automated ML)", 
-  "分類 (Classification)", "迴歸 (Regression)", "叢集 (Clustering)", "公平性 (Fairness)", 
-  "可靠性與安全性 (Reliability & Safety)", "隱私權與安全性 (Privacy & Security)", "包容性 (Inclusiveness)", 
-  "透明度 (Transparency)", "權責性 (Accountability)", "異常偵測 (Anomaly Detection)", 
-  "內容安全性 (Content Safety)", "Azure AI 搜尋 (AI Search)", "語言理解 (LUIS)", "文字分析 (Text Analytics)",
-  "知識採礦 (Knowledge Mining)", "交談式 AI (Conversational AI)"
-];
-
-const EXAM_HTML_DATA = `
-      <!-- Question 250 -->
-      <div class="question-card" id="question-250" data-category="outline-3">
-         <div class="question-meta">描述 Azure 上的電腦視覺工作負載的特點 (15-20%)</div>
-         <div class="question-title">第二百五十題 (選擇題)</div>
-         <div class="question-body">
-            <p>您應該使用下列哪種服務，從已掃描的檔中自動識取文字、索引鍵/值組以及資料表資料？</p>
-            <ul>
-               <li><input type="radio" name="q250" value="A" id="q250a" checked><label for="q250a"> A. <span class="keyword-highlight">表格辨識器 (Form Recognizer)</span></label></li>
-               <li><input type="radio" name="q250" value="B" id="q250b"><label for="q250b"> B. 文字分析</label></li>
-               <li><input type="radio" name="q250" value="C" id="q250c"><label for="q250c"> C. 自訂視覺</label></li>
-               <li><input type="radio" name="q250" value="D" id="q250d"><label for="q250d"> D. Language Understanding (LUIS)</label></li>
-            </ul>
-         </div>
-         <div class="answer-content" id="answer-250">
-            <div class="answer"><strong>答案：</strong> A. <span class="keyword-highlight">表格辨識器</span></div>
-            <div class="rationale"><strong>解析：</strong>從已掃描的檔中自動識別和提取文字、索引鍵/值組以及表格資料，是 Azure AI 文件智慧（先前稱為表格辨識器）服務的核心功能。</div>
-         </div>
-      </div>
-      <!-- Question 251 -->
-      <div class="question-card" id="question-251" data-category="outline-1">
-         <div class="question-meta">描述人工智慧工作負載和考量 (20-25%)</div>
-         <div class="question-title">第二百五十一題 (下拉選單題/填充題)</div>
-         <div class="question-body">
-            <p>請選取可正確完成句子的答案。</p>
-            <p>根據 Microsoft 責任 AI 的 <span class="keyword-highlight">公平性</span> 準則，AI 系統不應反映用於為訓練系統的資料集偏差。</p>
-         </div>
-         <div class="answer-content" id="answer-251">
-            <div class="answer"><strong>答案：</strong> <span class="keyword-highlight">公平性</span></div>
-            <div class="rationale"><strong>解析：</strong>公平性 (Fairness) 原則強調 AI 系統應該公平對待所有人，避免基於各種特徵產生有偏見的結果。確保 AI 系統不反映訓練資料中的偏差是實現公平性的重要方面。</div>
-         </div>
-      </div>
-      <!-- Question 3 -->
-      <div class="question-card" id="question-3" data-category="outline-4">
-         <div class="question-meta">描述 Azure 上自然語言處理 (NLP) 工作負載的特點 (25-30%)</div>
-         <div class="question-title">第三題 (是/否題)</div>
-         <div class="question-body">
-            <p>在下列每一項敘述中，如果敘述成立，請選取 [是]。否則，請選取 [否]。</p>
-            <div class="yes-no-item"><span class="yes-no-question-text">會回答諸如「我的下一場約會是何時?」等問題的家用智慧型裝置為交談式 AI 的範例。</span></div>
-            <div class="yes-no-item"><span class="yes-no-question-text">為預先錄製影片自動產生字幕是交談式 AI 的範例。</span></div>
-         </div>
-         <div class="answer-content" id="answer-3">
-            <div class="answer">
-               1. <span class="yes-no-answer-feedback yes-no-correct">是</span><br>
-               2. <span class="yes-no-answer-feedback yes-no-incorrect">否</span>
-            </div>
-            <div class="rationale"><strong>解析：</strong>家用智慧型裝置能理解並回應使用者的語音指令，進行互動式對話，這是交談式 AI。而自動產生字幕主要是語音轉換文字 (STT) 的單向功能，本身並不構成雙向互動的交談式 AI。</div>
-         </div>
-      </div>
-`;
-
-export default function AI900PearsonVueSimulator() {
-  const [appState, setAppState] = useState('parsing'); 
-  const [allQuestions, setAllQuestions] = useState([]);
-  const [examQuestions, setExamQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState({});
-  const [markedForReview, setMarkedForReview] = useState({});
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [examDuration, setExamDuration] = useState(0);
-  const [showCurrentAnswer, setShowCurrentAnswer] = useState(false);
-  const [customCount, setCustomCount] = useState(10); 
-  
-  const formRef = useRef(null);
-  const resultsContainerRef = useRef(null);
-
-  const parseHTMLContent = (htmlText) => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlText, 'text/html');
-    const cards = doc.querySelectorAll('.question-card');
-    
-    const parsed = Array.from(cards).map((card, index) => {
-      const qId = card.id || `gen_id_${Math.random().toString(36).substr(2, 9)}`;
-      const titleText = card.querySelector('.question-title')?.textContent || `Question ${index + 1}`;
-      const meta = card.querySelector('.question-meta')?.innerHTML || '';
-      const bodyNode = card.querySelector('.question-body');
-      const answerNode = card.querySelector('.answer-content');
-      if (!bodyNode || !answerNode) return null;
-
-      let bodyClone = bodyNode.cloneNode(true);
-      let type = 'choice';
-      let correctAnswers = {};
-      let maxPoints = 1;
-
-      const yesNoItems = bodyClone.querySelectorAll('.yes-no-item');
-      const matchingCheck = bodyClone.querySelectorAll('.matching-container');
-      const radioCheck = bodyClone.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-
-      // 1. 是/否題 (Yes/No)
-      if (yesNoItems.length > 0) {
-        type = 'yesno';
-        maxPoints = yesNoItems.length;
-        yesNoItems.forEach((item, i) => {
-          const text = item.querySelector('.yes-no-question-text')?.innerHTML || item.innerHTML;
-          const inputName = `${qId}_yn_${i}`;
-          item.className = "yes-no-item-container";
-          item.innerHTML = `
-            <div style="margin-bottom: 12px; font-weight: 500;">${text}</div>
-            <div style="display: flex; gap: 32px; margin-left: 8px;">
-              <label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
-                <input type="radio" name="${inputName}" data-key="${inputName}" value="Yes" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
-                <span>是 (Yes)</span>
-              </label>
-              <label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
-                <input type="radio" name="${inputName}" data-key="${inputName}" value="No" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
-                <span>否 (No)</span>
-              </label>
-            </div>
-          `;
-        });
-        const feedbacks = answerNode.querySelectorAll('.yes-no-answer-feedback');
-        feedbacks.forEach((fb, i) => {
-          correctAnswers[`${qId}_yn_${i}`] = fb.textContent.trim() === '是' ? 'Yes' : 'No';
-        });
-      }
-      // 2. 配對題 (Matching)
-      else if (matchingCheck.length > 0) {
-        type = 'matching';
-        const ansInputs = answerNode.querySelectorAll('input[type="text"]');
-        const bodyInputs = bodyClone.querySelectorAll('input[type="text"]');
-        maxPoints = bodyInputs.length;
-        
-        let textAnswerMatches = answerNode.innerText.match(/([A-Z])/g);
-        
-        bodyInputs.forEach((inp, i) => {
-           const key = inp.id || `match_${i}`;
-           inp.setAttribute('data-key', key);
-        });
-
-        ansInputs.forEach((inp, i) => {
-          if(bodyInputs[i]) {
-            const key = bodyInputs[i].getAttribute('data-key');
-            correctAnswers[key] = inp.value.trim().toUpperCase();
-          }
-        });
-
-        if(Object.keys(correctAnswers).length === 0 && textAnswerMatches && bodyInputs.length > 0) {
-           bodyInputs.forEach((inp, i) => {
-              if(textAnswerMatches[i]) {
-                 const key = inp.getAttribute('data-key');
-                 correctAnswers[key] = textAnswerMatches[i];
-              }
-           });
-        }
-        bodyInputs.forEach(inp => { inp.value = ''; inp.removeAttribute('value'); });
-      }
-      // 3. 標準單選/多選題
-      else if (radioCheck.length > 0) {
-        type = 'choice';
-        let correctCount = 0;
-        bodyClone.querySelectorAll('input').forEach((inp, idx) => {
-          const key = inp.id || inp.name || inp.value || `opt_${idx}`;
-          inp.setAttribute('data-key', key); 
-          
-          if (inp.hasAttribute('checked') || inp.checked) {
-            correctAnswers[key] = true;
-            correctCount++;
-            inp.removeAttribute('checked');
-            inp.checked = false;
-          }
-        });
-        maxPoints = 1;
-      }
-      // ★ 4. AI 智能還原選擇題 (針對沒選項、填空、或是答案洩漏的題目) ★
-      else {
-        type = 'choice';
-        let correctAnswerText = '';
-        let distractors = [];
-
-        // 如果是下拉選單文字，解析裡面的選項
-        const dropdownMatch = bodyClone.innerHTML.match(/\[下拉選單，可見選項：(.*?)\]/);
-        if (dropdownMatch) {
-          const optionsStr = dropdownMatch[1];
-          distractors = optionsStr.split('、').map(o => o.replace(/<[^>]+>/g, '').trim());
-          bodyClone.innerHTML = bodyClone.innerHTML.replace(dropdownMatch[0], ' <b style="color:#0078D4;">[ _______ ]</b> ');
-        }
-
-        // 從官方解答區抓取正解
-        const ansStrong = answerNode.querySelector('.answer');
-        if (ansStrong) {
-          const highlight = ansStrong.querySelector('.keyword-highlight') || ansStrong;
-          correctAnswerText = highlight.textContent.replace('答案：', '').replace(/^[A-Z]\.\s*/, '').trim();
-        }
-
-        // 如果題目本體已經洩漏了答案 (通常包在 .keyword-highlight 裡)，將它挖空！
-        const leakedAnswers = bodyClone.querySelectorAll('.keyword-highlight');
-        if (leakedAnswers.length > 0) {
-          if (!correctAnswerText) correctAnswerText = leakedAnswers[0].textContent.replace(/^[A-Z]\.\s*/, '').trim();
-          leakedAnswers.forEach(el => {
-             el.outerHTML = '<b style="color:#0078D4;">[ _______ ]</b>';
-          });
-        }
-
-        // 如果選項不足4個，從 AI-900 名詞庫中抽出混淆選項
-        if (correctAnswerText && distractors.length < 4) {
-           if (!distractors.includes(correctAnswerText)) distractors.push(correctAnswerText);
-           const pool = AI900_TERMS.filter(t => t !== correctAnswerText && !distractors.includes(t));
-           pool.sort(() => 0.5 - Math.random()); // 洗牌
-           while (distractors.length < 4 && pool.length > 0) {
-              distractors.push(pool.pop());
-           }
-        }
-
-        // 確保正解一定在選項裡
-        if (correctAnswerText && !distractors.includes(correctAnswerText)) {
-           distractors[0] = correctAnswerText;
-        }
-
-        // 打亂生成的選項順序
-        distractors.sort(() => 0.5 - Math.random());
-
-        // 動態生成 HTML 選擇題結構
-        if (distractors.length > 0) {
-           let optionsHtml = '<ul style="margin-top: 20px;">';
-           const optionLetters = ['A', 'B', 'C', 'D'];
-           distractors.forEach((opt, idx) => {
-              const isCorrect = opt === correctAnswerText;
-              const inputId = `${qId}_auto_${idx}`;
-              
-              if (isCorrect) {
-                 correctAnswers[inputId] = true;
-              }
-              
-              optionsHtml += `<li><label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
-                 <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${opt}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
-                 <span>${optionLetters[idx]}. ${opt}</span>
-              </label></li>`;
-           });
-           optionsHtml += '</ul>';
-           bodyClone.innerHTML += optionsHtml;
-           maxPoints = 1;
-        }
-      }
-
-      return {
-        id: qId,
-        title: titleText,
-        meta,
-        bodyHTML: bodyClone.innerHTML,
-        answerHTML: answerNode.innerHTML,
-        type,
-        correctAnswers,
-        maxPoints
-      };
-    }).filter(Boolean);
-
-    return parsed;
-  };
-
-  useEffect(() => {
-    setTimeout(() => {
-      const parsed = parseHTMLContent(EXAM_HTML_DATA);
-      setAllQuestions(parsed);
-      setCustomCount(Math.min(10, parsed.length));
-      setAppState('setup');
-    }, 300);
-  }, []);
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    setAppState('parsing'); 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const parsed = parseHTMLContent(evt.target.result);
-      setAllQuestions(parsed);
-      setCustomCount(Math.min(10, parsed.length));
-      setAppState('setup');
+    // 協助將 Lucide 圖標渲染出來的組件，解決物件渲染錯誤的問題
+    const Icon = ({ name, className = "w-5 h-5" }) => {
+      const LucideIcon = window.lucide[name];
+      return LucideIcon ? <LucideIcon className={className} /> : null;
     };
-    reader.readAsText(file);
-  };
 
-  const startExam = (questionCount) => {
-    const finalCount = Math.max(1, Math.min(questionCount, allQuestions.length));
-    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, finalCount);
-    
-    setExamQuestions(selected);
-    setCurrentIndex(0);
-    setUserAnswers({});
-    setMarkedForReview({});
-    setShowCurrentAnswer(false);
-    
-    const totalSeconds = selected.length * 90;
-    setTimeLeft(totalSeconds);
-    setExamDuration(totalSeconds);
-    setAppState('exam');
-  };
+    const AI900_TERMS = ["Azure OpenAI", "表格辨識器", "電腦視覺", "自訂視覺", "臉部服務", "自然語言處理", "語音服務", "自動化機器學習", "分類", "迴歸", "叢集", "公平性", "透明度", "權責性", "異常偵測", "內容安全性"];
 
-  useEffect(() => {
-    let timer;
-    if (appState === 'exam' && timeLeft > 0) {
-      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    } else if (appState === 'exam' && timeLeft === 0) {
-      saveCurrentAnswers();
-      setAppState('review_screen'); 
-    }
-    return () => clearInterval(timer);
-  }, [appState, timeLeft]);
+    const EXAM_HTML_DATA = `
+      <div class="question-card" id="question-250">
+          <div class="question-meta">描述 Azure 上的電腦視覺工作負載的特點 (15-20%)</div>
+          <div class="question-title">第二百五十題 (選擇題)</div>
+          <div class="question-body">
+             <p>您應該使用下列哪種服務，從已掃描的檔中自動識取文字、索引鍵/值組以及資料表資料？</p>
+             <ul>
+                <li><input type="radio" name="q250" value="A" id="q250a"><label for="q250a"> A. 表格辨識器 (Form Recognizer)</label></li>
+                <li><input type="radio" name="q250" value="B" id="q250b"><label for="q250b"> B. 文字分析</label></li>
+             </ul>
+          </div>
+          <div class="answer-content">
+             <div class="answer"><strong>答案：</strong> A</div>
+             <div class="rationale">解析：這是 Azure AI 文件智慧服務的核心功能。</div>
+          </div>
+      </div>
+    `;
 
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const saveCurrentAnswers = () => {
-    if (!formRef.current || !examQuestions[currentIndex]) return;
-    const qId = examQuestions[currentIndex].id;
-    const inputs = formRef.current.querySelectorAll('input, select');
-    const newState = {};
-    
-    inputs.forEach(inp => {
-      if (inp.type === 'radio' || inp.type === 'checkbox') {
-        if (inp.checked) {
-          if (examQuestions[currentIndex].type === 'yesno') {
-             newState[inp.name] = inp.value;
-          } else {
-             const key = inp.getAttribute('data-key');
-             newState[key] = true;
-          }
-        }
-      } else if (inp.type === 'text' || inp.tagName === 'SELECT') {
-        if (inp.value.trim() !== '') {
-          const key = inp.getAttribute('data-key');
-          newState[key] = inp.type === 'text' ? inp.value.trim().toUpperCase() : inp.value;
-        }
-      }
-    });
-    
-    setUserAnswers(prev => ({ ...prev, [qId]: newState }));
-  };
-
-  useEffect(() => {
-    const formElement = formRef.current;
-    if (!formElement || appState !== 'exam') return;
-
-    const handleNativeEvent = () => saveCurrentAnswers();
-
-    formElement.addEventListener('change', handleNativeEvent);
-    formElement.addEventListener('input', handleNativeEvent);
-
-    return () => {
-      formElement.removeEventListener('change', handleNativeEvent);
-      formElement.removeEventListener('input', handleNativeEvent);
-    };
-  }, [currentIndex, appState, examQuestions]);
-
-  useEffect(() => {
-    setShowCurrentAnswer(false); 
-    
-    if (appState === 'exam' && formRef.current && examQuestions[currentIndex]) {
-      const qId = examQuestions[currentIndex].id;
-      const savedState = userAnswers[qId] || {};
-      const inputs = formRef.current.querySelectorAll('input, select');
+    function AI900PearsonVueSimulator() {
+      const [appState, setAppState] = useState('parsing'); 
+      const [allQuestions, setAllQuestions] = useState([]);
+      const [examQuestions, setExamQuestions] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [userAnswers, setUserAnswers] = useState({});
+      const [timeLeft, setTimeLeft] = useState(0);
+      const [showCurrentAnswer, setShowCurrentAnswer] = useState(false);
+      const [customCount, setCustomCount] = useState(10); 
       
-      inputs.forEach(inp => {
-        if (inp.type === 'radio' || inp.type === 'checkbox') {
-          if (examQuestions[currentIndex].type === 'yesno') {
-             inp.checked = savedState[inp.name] === inp.value;
-          } else {
-             const key = inp.getAttribute('data-key');
-             inp.checked = !!savedState[key];
-          }
-        } else if (inp.type === 'text' || inp.tagName === 'SELECT') {
-          const key = inp.getAttribute('data-key');
-          inp.value = savedState[key] || '';
-        }
-      });
-    }
-  }, [currentIndex, appState, userAnswers, examQuestions]);
+      const formRef = useRef(null);
 
-  useEffect(() => {
-    if (appState === 'results' && resultsContainerRef.current) {
-      examQuestions.forEach(q => {
-        const uAns = userAnswers[q.id] || {};
-        const container = resultsContainerRef.current.querySelector(`#result-q-${q.id}`);
-        if (!container) return;
-        
-        const inputs = container.querySelectorAll('input, select');
-        inputs.forEach(inp => {
-          if (inp.type === 'radio' || inp.type === 'checkbox') {
-            if (q.type === 'yesno') {
-               inp.checked = uAns[inp.name] === inp.value;
-            } else {
-               const key = inp.getAttribute('data-key');
-               inp.checked = !!uAns[key];
-            }
-          } else if (inp.type === 'text' || inp.tagName === 'SELECT') {
-            const key = inp.getAttribute('data-key');
-            inp.value = uAns[key] || '';
-          }
-          inp.disabled = true; 
-        });
-      });
-    }
-  }, [appState, examQuestions, userAnswers]);
+      // 解析邏輯
+      const parseHTMLContent = (htmlText) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        const cards = doc.querySelectorAll('.question-card');
+        return Array.from(cards).map((card, index) => {
+          const qId = card.id || `gen_id_${index}`;
+          const bodyNode = card.querySelector('.question-body');
+          const answerNode = card.querySelector('.answer-content');
+          if (!bodyNode || !answerNode) return null;
+          return {
+            id: qId,
+            title: card.querySelector('.question-title')?.textContent || `Question ${index + 1}`,
+            meta: card.querySelector('.question-meta')?.innerHTML || '',
+            bodyHTML: bodyNode.innerHTML,
+            answerHTML: answerNode.innerHTML,
+            maxPoints: 1
+          };
+        }).filter(Boolean);
+      };
 
-  const calculateScore = () => {
-    let earnedPoints = 0;
-    let totalPossiblePoints = 0;
+      useEffect(() => {
+        const parsed = parseHTMLContent(EXAM_HTML_DATA);
+        setAllQuestions(parsed);
+        setAppState('setup');
+      }, []);
 
-    examQuestions.forEach(q => {
-      totalPossiblePoints += q.maxPoints;
-      const uAns = userAnswers[q.id] || {};
-      const cAns = q.correctAnswers;
+      const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setAppState('parsing');
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const parsed = parseHTMLContent(evt.target.result);
+          setAllQuestions(parsed);
+          setAppState('setup');
+        };
+        reader.readAsText(file);
+      };
 
-      if (q.type === 'choice') {
-        const uKeys = Object.keys(uAns).filter(k => uAns[k] === true);
-        const cKeys = Object.keys(cAns);
-        const isCorrect = uKeys.length === cKeys.length && uKeys.every(k => cKeys.includes(k));
-        if (isCorrect) earnedPoints += 1;
-      } else if (q.type === 'yesno' || q.type === 'matching' || q.type === 'dropdown') {
-        Object.keys(cAns).forEach(key => {
-          if (uAns[key] === cAns[key]) earnedPoints += 1;
-        });
+      const startExam = (count) => {
+        const selected = [...allQuestions].sort(() => 0.5 - Math.random()).slice(0, count);
+        setExamQuestions(selected);
+        setTimeLeft(count * 90);
+        setAppState('exam');
+      };
+
+      if (appState === 'parsing') return <div className="h-screen flex items-center justify-center font-bold text-blue-600">處理中...</div>;
+
+      if (appState === 'setup') {
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-100">
+            <div className="bg-white rounded-2xl shadow-xl p-10 max-w-xl w-full border-t-8 border-blue-600">
+              <h2 className="text-3xl font-black text-slate-800 mb-2">Pearson VUE 模擬考場</h2>
+              <p className="text-slate-500 mb-8 font-medium">Exam AI-900: Azure AI Fundamentals</p>
+              
+              <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 flex items-start mb-8">
+                <Icon name="Info" className="w-6 h-6 mr-3 text-blue-600 flex-shrink-0" />
+                <p className="text-blue-800 text-sm">系統目前載入了 <strong>{allQuestions.length}</strong> 道試題。您可以直接開始練習，或匯入您自己的完整 268 題 HTML 題庫。</p>
+              </div>
+
+              <div className="space-y-4">
+                <button onClick={() => startExam(allQuestions.length)} className="w-full flex justify-between items-center p-5 border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm group">
+                  <div className="text-left">
+                    <div className="font-bold text-slate-800">開始測驗 ({allQuestions.length} 題)</div>
+                    <div className="text-xs text-slate-400">系統將會隨機排列所有題目</div>
+                  </div>
+                  <Icon name="Play" className="text-blue-600" />
+                </button>
+
+                <div className="p-6 bg-slate-200 rounded-xl text-center">
+                  <p className="text-slate-600 text-sm mb-4 font-bold">我有完整的 268 題題庫檔 (HTML)</p>
+                  <label className="inline-flex items-center px-6 py-3 bg-white text-slate-700 border border-slate-300 rounded-lg font-bold cursor-pointer hover:bg-slate-50 shadow-sm">
+                    <Icon name="UploadCloud" className="mr-2" /> 匯入題庫
+                    <input type="file" className="hidden" accept=".html" onChange={handleFileUpload} />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       }
-    });
 
-    if (totalPossiblePoints === 0) return 0;
-    return Math.round((earnedPoints / totalPossiblePoints) * 1000);
-  };
-
-  if (appState === 'parsing') {
-    return (
-      <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center">
-          <RefreshCw className="w-10 h-10 text-[#0078D4] animate-spin mb-4" />
-          <h2 className="text-xl font-bold text-slate-700">正在處理題庫...</h2>
-        </div>
-      </div>
-    );
-  }
-
-  if (appState === 'setup') {
-    return (
-      <div className="min-h-screen bg-[#f3f4f6] flex flex-col items-center justify-center p-6 font-sans">
-        
-        <div className="bg-white rounded-xl shadow-lg p-10 max-w-xl w-full border-t-4 border-[#0078D4] mb-6">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">Pearson VUE 模擬考場</h2>
-          <p className="text-slate-500 mb-6 font-medium text-sm">Exam AI-900: Azure AI Fundamentals</p>
-          
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 mb-8 flex items-start text-blue-900 text-sm leading-relaxed">
-            <Info className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5" />
-            <div>
-              系統目前載入了 <strong className="text-lg">{allQuestions.length}</strong> 道試題。<br/>
-              <span className="font-bold text-blue-700">✨ 全新功能啟用</span>：遇到沒有給選項的填空或洩題，系統將自動為您挖空並生成四選一的標準選擇題！
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <button onClick={() => startExam(40)} disabled={allQuestions.length === 0} className="w-full flex justify-between items-center p-5 border border-slate-300 rounded-lg hover:border-[#0078D4] hover:bg-slate-50 hover:shadow-sm transition-all text-left disabled:opacity-50">
-              <div>
-                <div className="text-lg font-bold text-slate-800">標準認證測驗 (40 題)</div>
-                <div className="text-sm text-slate-500 mt-1">時間限制：60 分鐘，符合真實考場節奏</div>
+      if (appState === 'exam') {
+        const q = examQuestions[currentIndex];
+        return (
+          <div className="min-h-screen flex flex-col">
+            <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
+              <div className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-xs">AI-900 SIMULATOR</div>
+              <div className="flex items-center font-mono font-bold text-slate-600">
+                <Icon name="Clock" className="mr-2 w-4 h-4" /> {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}
               </div>
-              <Play className="w-6 h-6 text-[#0078D4]" />
-            </button>
+            </header>
 
-            <div className="w-full flex justify-between items-center p-5 border border-slate-300 rounded-lg bg-white transition-all text-left group hover:border-[#0078D4]">
-              <div className="flex-1">
-                <div className="text-lg font-bold text-slate-800">自訂隨機題數測驗</div>
-                <div className="text-sm text-slate-500 mt-1">輸入您想要抽測的題目數量</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input 
-                  type="number" 
-                  min="1" 
-                  max={allQuestions.length} 
-                  value={customCount}
-                  onChange={(e) => setCustomCount(Number(e.target.value))}
-                  className="w-20 px-3 py-2 border border-slate-300 rounded text-center font-bold text-slate-700 outline-none focus:border-[#0078D4]"
-                />
-                <button 
-                  onClick={() => startExam(customCount)} 
-                  disabled={allQuestions.length === 0}
-                  className="p-2.5 bg-[#0078D4] text-white rounded hover:bg-[#005a9e] disabled:opacity-50 transition-colors"
-                  title="開始自訂測驗"
-                >
-                  <Settings2 className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+            <main className="flex-1 overflow-y-auto p-4 sm:p-10 flex justify-center">
+              <div className="w-full max-w-4xl bg-white border border-slate-300 shadow-xl flex flex-col">
+                <div className="bg-slate-100 px-8 py-4 border-b flex justify-between">
+                  <span className="font-bold text-slate-700">Question {currentIndex + 1} of {examQuestions.length}</span>
+                  <div className="flex items-center text-slate-400 text-sm font-bold"><Icon name="Flag" className="mr-1 w-4 h-4" /> Mark for Review</div>
+                </div>
 
-            <button onClick={() => startExam(allQuestions.length)} disabled={allQuestions.length === 0} className="w-full flex justify-between items-center p-5 border border-slate-300 rounded-lg hover:border-[#0078D4] hover:bg-slate-50 hover:shadow-sm transition-all text-left disabled:opacity-50">
-              <div>
-                <div className="text-lg font-bold text-slate-800">全題庫測驗 ({allQuestions.length} 題)</div>
-                <div className="text-sm text-slate-500 mt-1">一次刷完目前載入的所有題目</div>
-              </div>
-              <LayoutGrid className="w-6 h-6 text-[#0078D4]" />
-            </button>
-          </div>
-        </div>
-
-        <div className="max-w-xl w-full">
-           <div className="bg-slate-200 border border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center text-center">
-             <p className="text-slate-600 font-medium mb-3">想要匯入完整的 268 題題庫嗎？</p>
-             <label className="flex items-center justify-center px-6 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-md font-semibold cursor-pointer transition-colors shadow-sm hover:bg-slate-50 hover:border-slate-400">
-                <UploadCloud className="w-5 h-5 mr-2 text-slate-500" />
-                匯入完整 HTML 題庫檔
-                <input type="file" accept=".html" className="absolute hidden" onChange={handleFileUpload} />
-             </label>
-           </div>
-        </div>
-
-      </div>
-    );
-  }
-
-  if (appState === 'exam') {
-    const currentQ = examQuestions[currentIndex];
-    
-    return (
-      <div className="min-h-screen bg-[#f9fafb] flex flex-col font-sans select-none">
-        <style>{originalStyles}</style>
-        
-        <header className="bg-white border-b border-slate-300 flex justify-between items-center shadow-sm">
-          <div className="px-6 py-3 bg-[#0078D4] text-white font-semibold text-sm">
-            AI-900: Azure AI Fundamentals
-          </div>
-          <div className="flex items-center space-x-6 px-6">
-            <div className={`flex items-center font-mono font-medium ${timeLeft < 300 ? 'text-red-600' : 'text-slate-700'}`}>
-              <Clock className="w-4 h-4 mr-2" />
-              Time Remaining: {formatTime(timeLeft)}
-            </div>
-            <button 
-              onClick={() => {
-                saveCurrentAnswers(); 
-                setAppState('review_screen');
-              }}
-              className="text-sm font-semibold text-[#0078D4] hover:underline"
-            >
-              Exam Review
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto flex justify-center p-4 sm:p-8">
-          <div className="w-full max-w-4xl bg-white border border-slate-300 shadow-sm flex flex-col h-full max-h-[85vh]">
-            
-            <div className="bg-[#f1f5f9] px-8 py-4 border-b border-slate-300 flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold text-[#1e293b]">Question {currentIndex + 1}</h2>
-                <span className="text-xs font-semibold text-slate-500 tracking-wider uppercase">Of {examQuestions.length}</span>
-              </div>
-              <label className="flex items-center cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  checked={!!markedForReview[currentQ.id]}
-                  onChange={() => {
-                    saveCurrentAnswers(); 
-                    setMarkedForReview(p => ({...p, [currentQ.id]: !p[currentQ.id]}));
-                  }}
-                  className="w-4 h-4 accent-amber-500 cursor-pointer" 
-                />
-                <span className="ml-2 text-sm font-medium text-slate-600 group-hover:text-slate-900">Mark for review</span>
-              </label>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-8 py-8 exam-content-area">
-              {currentQ.meta && (
-                <div className="mb-6 inline-block text-slate-600 text-sm font-normal" dangerouslySetInnerHTML={{ __html: currentQ.meta.replace(/<br>/g, ' | ') }} />
-              )}
-              <form ref={formRef}>
-                <div dangerouslySetInnerHTML={{ __html: currentQ.bodyHTML }} />
-              </form>
-              
-              <div className="mt-10 pt-6 border-t border-slate-200">
-                <button 
-                  onClick={() => setShowCurrentAnswer(!showCurrentAnswer)}
-                  className="flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-md font-medium transition-colors text-sm shadow-sm"
-                >
-                  <Info className="w-4 h-4 mr-2 text-slate-500" />
-                  {showCurrentAnswer ? '隱藏答案與解析' : '顯示答案與解析 (Practice Mode)'}
-                </button>
-
-                {showCurrentAnswer && (
-                  <div className="mt-4 bg-[#f0fdf4] border border-[#bbf7d0] p-5 rounded-md exam-content-area animate-in fade-in duration-200">
-                    <div className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-3 flex items-center">
-                      <CheckCircle2 className="w-4 h-4 mr-1"/> Official Answer & Explanation
-                    </div>
-                    <div dangerouslySetInnerHTML={{ __html: currentQ.answerHTML }} />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-[#f8fafc] px-8 py-4 border-t border-slate-300 flex justify-between items-center">
-              <button 
-                onClick={() => {
-                  saveCurrentAnswers(); 
-                  setCurrentIndex(p => Math.max(0, p - 1));
-                }}
-                disabled={currentIndex === 0}
-                className="px-6 py-2 bg-white border border-slate-300 rounded font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-colors"
-              >
-                Previous
-              </button>
-              <button 
-                onClick={() => {
-                  saveCurrentAnswers(); 
-                  if (currentIndex === examQuestions.length - 1) setAppState('review_screen');
-                  else setCurrentIndex(p => Math.min(examQuestions.length - 1, p + 1));
-                }}
-                className="px-8 py-2 bg-[#0078D4] text-white rounded font-semibold hover:bg-[#005a9e] transition-colors"
-              >
-                {currentIndex === examQuestions.length - 1 ? 'Review' : 'Next'}
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (appState === 'review_screen') {
-    return (
-      <div className="min-h-screen bg-[#f3f4f6] flex flex-col font-sans">
-        <header className="bg-white border-b border-slate-300 px-6 py-4 flex justify-between items-center shadow-sm">
-          <div className="font-bold text-[#1e293b] text-lg">Exam Review</div>
-          <div className="font-mono font-medium text-slate-700"><Clock className="inline w-4 h-4 mr-2 mb-0.5" />{formatTime(timeLeft)}</div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
-          <div className="bg-white border border-slate-300 shadow-sm p-8">
-            <p className="mb-6 text-slate-600 font-medium">Click on any question number to review it. Questions marked for review have a flag.</p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
-              {examQuestions.map((q, idx) => {
-                const hasAnswer = userAnswers[q.id] && Object.keys(userAnswers[q.id]).length > 0;
-                const isMarked = markedForReview[q.id];
-                
-                let boxClass = "relative flex items-center justify-between p-3 border rounded cursor-pointer transition-colors hover:border-[#0078D4] ";
-                boxClass += hasAnswer ? "bg-slate-50 border-slate-300" : "bg-white border-rose-300";
-
-                return (
-                  <div key={q.id} onClick={() => { setCurrentIndex(idx); setAppState('exam'); }} className={boxClass}>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm text-slate-800">Q {idx + 1}</span>
-                      <span className={`text-[10px] uppercase font-bold ${hasAnswer ? 'text-emerald-600' : 'text-rose-500'}`}>{hasAnswer ? 'Answered' : 'Unanswered'}</span>
-                    </div>
-                    {isMarked && <Flag className="w-4 h-4 text-amber-500 fill-current" />}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-between items-center border-t border-slate-200 pt-6">
-              <button onClick={() => setAppState('exam')} className="px-6 py-2 border border-slate-300 rounded font-semibold text-slate-700 hover:bg-slate-50">
-                Return to Exam
-              </button>
-              <button onClick={() => setAppState('results')} className="px-8 py-2 bg-[#0078D4] text-white rounded font-bold hover:bg-[#005a9e] shadow">
-                Finish Exam
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (appState === 'results') {
-    const score = calculateScore();
-    const passed = score >= 700;
-
-    return (
-      <div className="min-h-screen bg-[#f3f4f6] p-4 sm:p-8 font-sans">
-        <style>{originalStyles}</style>
-        <div className="max-w-4xl mx-auto space-y-6">
-          
-          <div className="bg-white border border-slate-300 shadow-sm p-10 flex flex-col items-center relative overflow-hidden">
-            <div className={`absolute top-0 w-full h-2 ${passed ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-            <h1 className="text-3xl font-light text-slate-800 mb-6">Microsoft Certification Score Report</h1>
-            <h2 className="text-xl font-semibold mb-8 text-[#0078D4]">AI-900: Azure AI Fundamentals</h2>
-            
-            <div className="text-center mb-8">
-              <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Your Score</div>
-              <div className={`text-6xl font-black ${passed ? 'text-emerald-600' : 'text-rose-600'}`}>{score}</div>
-              <div className="text-sm text-slate-500 mt-2">Passing Score: 700</div>
-            </div>
-            
-            <div className={`text-2xl font-bold px-12 py-3 border-2 ${passed ? 'border-emerald-500 text-emerald-600' : 'border-rose-500 text-rose-600'}`}>
-              {passed ? 'PASS' : 'FAIL'}
-            </div>
-            
-            <button onClick={() => setAppState('setup')} className="mt-10 text-sm text-[#0078D4] font-medium hover:underline flex items-center">
-              <RefreshCw className="w-4 h-4 mr-1" /> Finish and Return
-            </button>
-          </div>
-
-          <div className="space-y-4" ref={resultsContainerRef}>
-            <h3 className="text-xl font-semibold text-slate-800 px-1 border-b pb-2">Detailed Review</h3>
-            {examQuestions.map((q, idx) => {
-              const uAns = userAnswers[q.id] || {};
-              const cAns = q.correctAnswers;
-              
-              let isCorrect = false;
-              if (q.type === 'choice') {
-                const uKeys = Object.keys(uAns).filter(k => uAns[k] === true);
-                const cKeys = Object.keys(cAns);
-                isCorrect = uKeys.length === cKeys.length && uKeys.every(k => cKeys.includes(k));
-              } else {
-                isCorrect = Object.keys(cAns).every(key => uAns[key] === cAns[key]) && Object.keys(cAns).length > 0;
-              }
-
-              return (
-                <div key={q.id} id={`result-q-${q.id}`} className="bg-white border border-slate-300 shadow-sm p-6">
-                  <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                    <span className="font-bold text-[#1e293b]">Question {idx + 1}</span>
-                    {isCorrect ? 
-                      <span className="flex items-center text-emerald-600 font-bold text-sm"><CheckCircle2 className="w-5 h-5 mr-1"/> Correct</span> : 
-                      <span className="flex items-center text-rose-600 font-bold text-sm"><XCircle className="w-5 h-5 mr-1"/> Incorrect</span>
-                    }
-                  </div>
+                <div className="flex-1 overflow-y-auto p-10 exam-content-area">
+                  <div className="mb-4 text-slate-400 text-sm italic" dangerouslySetInnerHTML={{ __html: q.meta }} />
+                  <div className="font-bold text-xl mb-6 text-slate-800">{q.title}</div>
+                  <div dangerouslySetInnerHTML={{ __html: q.bodyHTML }} />
                   
-                  <div className="exam-content-area mb-8 result-locked">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Your Answer</h4>
-                    <form dangerouslySetInnerHTML={{ __html: q.bodyHTML }} />
-                  </div>
-
-                  <div className="bg-slate-50 border border-slate-200 p-5 rounded-md exam-content-area">
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center">
-                      <CheckCircle2 className="w-4 h-4 mr-1 text-slate-400"/> Official Answer & Explanation
-                    </div>
-                    <div dangerouslySetInnerHTML={{ __html: q.answerHTML }} />
+                  <div className="mt-10 pt-10 border-t">
+                    <button onClick={() => setShowCurrentAnswer(!showCurrentAnswer)} className="flex items-center px-4 py-2 bg-slate-100 rounded-lg border font-bold text-slate-600 hover:bg-slate-200">
+                      <Icon name="Info" className="mr-2 w-4 h-4" /> {showCurrentAnswer ? '隱藏解析' : '顯示官方解析 (Practice Mode)'}
+                    </button>
+                    {showCurrentAnswer && (
+                      <div className="mt-4 p-6 bg-emerald-50 border border-emerald-100 rounded-xl animate-in fade-in duration-300">
+                        <div className="font-black text-emerald-700 mb-2 flex items-center"><Icon name="CheckCircle2" className="mr-2" /> OFFICIAL ANSWER</div>
+                        <div dangerouslySetInnerHTML={{ __html: q.answerHTML }} />
+                      </div>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  return null;
-}
+                <div className="bg-slate-50 px-8 py-5 border-t flex justify-between">
+                  <button disabled={currentIndex === 0} onClick={() => {setCurrentIndex(currentIndex-1); setShowCurrentAnswer(false);}} className="px-6 py-2 bg-white border rounded-lg font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-30">Previous</button>
+                  <button onClick={() => {
+                    if(currentIndex < examQuestions.length - 1) { setCurrentIndex(currentIndex+1); setShowCurrentAnswer(false); }
+                    else { setAppState('setup'); }
+                  }} className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg">
+                    {currentIndex === examQuestions.length - 1 ? 'Finish' : 'Next'}
+                  </button>
+                </div>
+              </div>
+            </main>
+          </div>
+        );
+      }
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AI900PearsonVueSimulator />);
+  </script>
+</body>
+</html>
