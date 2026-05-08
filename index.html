@@ -3489,67 +3489,106 @@
          </div>
       </div>
       <!-- Question 42 -->
-      <div class="question-card" id="question-42" data-category="outline-2">
-         <div class="question-meta">
-            描述 Azure 上機器學習的基本原則 (25-30%) <br> (2.3 描述 Azure 機器學習工作室中視覺工具的能力 - Designer)
-         </div>
-         <div class="question-title">第四十二題 (拖放排序題)</div>
-         <div class="question-body">
-            <p>您想要使用 <span class="chinese-noun">Machine Learning 設計工具</span>部署 <span class="chinese-noun">Azure Machine
-                  Learning</span> 模型。</p>
-            <p>您應該依序執行下列四項動作？作答時，請將適當的動作清單移至作答區，並按照正確順序排列。</p>
-            <p><strong>提供的動作選項 (請依正確順序排列至下方作答區)：</strong></p>
-            <ul>
-               <li>對原始資料集評估模型。</li>
-               <li>內嵌及準備資料集。</li>
-               <li>定型模型。</li>
-               <li>將資料隨機分割為訓練資料與驗證資料...</li>
-            </ul>
-            <p><strong>作答區 (正確順序應如下)：</strong></p>
-            <ol>
-               <li>內嵌及準備資料集。</li>
-               <li>將資料隨機分割為訓練資料與驗證資料...</li>
-               <li>定型模型。</li>
-               <li>對原始資料集評估模型。</li>
-            </ol>
-         </div>
-         <button class="answer-toggle" onclick="toggleAnswer('answer-42', this)">顯示答案與解析</button>
-         <div class="answer-content" id="answer-42">
-            <div class="answer">
-               <strong>答案 (正確順序)：</strong>
-               <ol>
-                  <li>內嵌及準備資料集。</li>
-                  <li>將資料隨機分割為訓練資料與驗證資料...</li>
-                  <li>定型模型。</li>
-                  <li>對原始資料集評估模型。 (更準確地說，是對「驗證/測試資料集」評估模型)</li>
-               </ol>
+    <div class="max-w-3xl w-full bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden" id="question-42">
+        
+        <!-- 卡片標頭 -->
+        <div class="bg-blue-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">第四十二題 (拖放排序題)</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                    描述 Azure 上機器學習的基本原則 (25-30%) <br> 
+                    (2.3 描述 Azure 機器學習工作室中視覺工具的能力 - Designer)
+                </p>
             </div>
-            <div class="rationale">
-               <strong>解析：</strong><br>
-               使用 <span class="chinese-noun">Azure Machine Learning 設計工具</span>建立和部署模型的典型流程如下：
-               <ol>
-                  <li><span class="keyword-highlight">內嵌及準備資料集</span>：首先，需要將資料載入到設計工具中，並進行必要的清理、轉換和特徵工程。</li>
-                  <li><span
-                        class="keyword-highlight">將資料隨機分割為訓練資料與驗證資料</span>：將資料集分割成訓練集和測試集（或驗證集）是標準做法。模型在訓練集上學習，然後在測試集上評估其泛化能力。
-                  </li>
-                  <li><span class="keyword-highlight">定型模型</span>：使用訓練資料集和選擇的演算法來訓練模型。</li>
-                  <li><span
-                        class="keyword-highlight">對原始資料集評估模型</span>：更精確地說，應該是使用「測試/驗證資料集」（即模型未見過的資料部分）來評估模型的性能。題目中的「原始資料集」在此應理解為分割後的測試部分。
-                  </li>
-               </ol>
+            <div class="flex items-center text-sm text-gray-500">
+                <input type="checkbox" id="mark-review" class="mr-2 rounded text-blue-600 focus:ring-blue-500">
+                <label for="mark-review">Mark for review</label>
             </div>
-            <div class="exam-tip">
-               <strong>考試小技巧：</strong><br>
-               記住<span class="chinese-noun">機器學習</span>的標準工作流程：資料準備 -> 資料分割 -> 模型訓練 -> 模型評估 -> 模型部署。即使使用視覺化工具如<span
-                  class="chinese-noun">設計工具</span>，這個基本流程也是不變的。
+        </div>
+
+        <!-- 卡片內容區 -->
+        <div class="p-6">
+            <div class="text-gray-700 space-y-4 mb-6 text-base">
+                <p>您想要使用 <span class="font-semibold text-blue-700">Machine Learning 設計工具</span>部署 <span class="font-semibold text-blue-700">Azure Machine Learning</span> 模型。</p>
+                <p>您應該依序執行下列四項動作？作答時，請將下方動作清單<span class="font-bold text-red-600">上下拖曳</span>至正確順序。</p>
             </div>
-            <div class="url">
-               <strong>參考資料：</strong> <a
-                  href="https://learn.microsoft.com/zh-tw/azure/machine-learning/tutorial-designer-automobile-price-train-score"
-                  target="_blank">Microsoft Learn: 教學課程：在設計工具中定型無程式碼迴歸模型</a>
+
+            <!-- 可拖曳的排序清單 -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-yellow-700 font-medium mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    請拖曳以下項目以完成排序：
+                </p>
+                
+                <ul id="sortable-list" class="space-y-2">
+                    <!-- 故意打亂的初始順序 -->
+                    <li draggable="true" class="sortable-item bg-white border border-gray-300 rounded p-3 flex items-center cursor-grab active:cursor-grabbing text-gray-700">
+                        <svg class="w-5 h-5 text-gray-400 mr-3 cursor-grab" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                        對原始資料集評估模型。
+                    </li>
+                    <li draggable="true" class="sortable-item bg-white border border-gray-300 rounded p-3 flex items-center cursor-grab active:cursor-grabbing text-gray-700">
+                        <svg class="w-5 h-5 text-gray-400 mr-3 cursor-grab" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                        內嵌及準備資料集。
+                    </li>
+                    <li draggable="true" class="sortable-item bg-white border border-gray-300 rounded p-3 flex items-center cursor-grab active:cursor-grabbing text-gray-700">
+                        <svg class="w-5 h-5 text-gray-400 mr-3 cursor-grab" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                        定型模型。
+                    </li>
+                    <li draggable="true" class="sortable-item bg-white border border-gray-300 rounded p-3 flex items-center cursor-grab active:cursor-grabbing text-gray-700">
+                        <svg class="w-5 h-5 text-gray-400 mr-3 cursor-grab" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                        將資料隨機分割為訓練資料與驗證資料。
+                    </li>
+                </ul>
             </div>
-         </div>
-      </div>
+
+            <!-- 控制按鈕 -->
+            <div class="flex justify-between items-center mt-8 border-t border-gray-100 pt-4">
+                <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">Previous</button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium shadow-sm" onclick="toggleAnswer()">顯示答案與解析</button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium shadow-sm">Next</button>
+            </div>
+
+            <!-- 解答與解析區塊 (預設隱藏) -->
+            <div id="answer-section" class="hidden mt-6 bg-gray-50 border border-gray-200 rounded-lg p-5">
+                <div class="mb-4">
+                    <h3 class="text-green-700 font-bold mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        正確順序應如下：
+                    </h3>
+                    <ol class="list-decimal list-inside space-y-1 text-gray-800 ml-2 font-medium">
+                        <li>內嵌及準備資料集。</li>
+                        <li>將資料隨機分割為訓練資料與驗證資料。</li>
+                        <li>定型模型。</li>
+                        <li>對原始資料集評估模型。 <span class="text-sm font-normal text-gray-500">(更準確地說，是對「驗證/測試資料集」評估模型)</span></li>
+                    </ol>
+                </div>
+                
+                <hr class="border-gray-200 my-4">
+
+                <div class="mb-4">
+                    <h3 class="text-blue-800 font-bold mb-2">解析：</h3>
+                    <p class="text-gray-700 text-sm leading-relaxed mb-2">使用 Azure Machine Learning 設計工具建立和部署模型的典型流程如下：</p>
+                    <ol class="list-decimal list-inside space-y-2 text-sm text-gray-700 ml-2">
+                        <li><span class="font-semibold text-blue-600">內嵌及準備資料集</span>：首先，需要將資料載入到設計工具中，並進行必要的清理、轉換和特徵工程。</li>
+                        <li><span class="font-semibold text-blue-600">將資料隨機分割為訓練資料與驗證資料</span>：將資料集分割成訓練集和測試集（或驗證集）是標準做法。模型在訓練集上學習，然後在測試集上評估其泛化能力。</li>
+                        <li><span class="font-semibold text-blue-600">定型模型</span>：使用訓練資料集和選擇的演算法來訓練模型。</li>
+                        <li><span class="font-semibold text-blue-600">對原始資料集評估模型</span>：更精確地說，應該是使用「測試/驗證資料集」（即模型未見過的資料部分）來評估模型的性能。題目中的「原始資料集」在此應理解為分割後的測試部分。</li>
+                    </ol>
+                </div>
+
+                <div class="bg-blue-100 p-3 rounded text-sm text-blue-800 mb-4">
+                    <strong>💡 考試小技巧：</strong><br>
+                    記住機器學習的標準工作流程：資料準備 ➔ 資料分割 ➔ 模型訓練 ➔ 模型評估 ➔ 模型部署。即使使用視覺化工具如設計工具，這個基本流程也是不變的。
+                </div>
+
+                <div class="text-sm">
+                    <strong>參考資料：</strong> 
+                    <a href="https://learn.microsoft.com/zh-tw/azure/machine-learning/tutorial-designer-automobile-price-train-score" target="_blank" class="text-blue-600 hover:underline">
+                        Microsoft Learn: 教學課程：在設計工具中定型無程式碼迴歸模型
+                    </a>
+                </div>
+            </div>
+        </div>
       <!-- Question 43 -->
       <div class="question-card" id="question-43" data-category="outline-2">
          <div class="question-meta">
