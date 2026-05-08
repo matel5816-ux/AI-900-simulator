@@ -14685,8 +14685,14 @@
       if (appState === 'setup') {
         return (
           <div className="min-h-screen bg-[#f3f4f6] flex flex-col items-center justify-center p-6 font-sans">
-            <div className="bg-white rounded-xl shadow-lg p-10 max-w-xl w-full border-t-4 border-[#0078D4] mb-6">
-              <h2 className="text-3xl font-bold text-slate-800 mb-2">Pearson VUE AI-900 Lab | Tailored for En-Chung</h2>
+            <div className="bg-white rounded-xl shadow-lg p-10 max-w-xl w-full border-t-4 border-[#0078D4] mb-6 relative overflow-hidden">
+              
+              {/* ✨ 專屬作者徽章 (右上角) */}
+              <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-[#0078D4] text-white text-xs font-bold px-4 py-1.5 rounded-bl-lg shadow-sm">
+                ✨ Designed by [EnChung]
+              </div>
+
+              <h2 className="text-3xl font-bold text-slate-800 mb-2 mt-2">Pearson VUE AI-900 Lab</h2>
               <p className="text-slate-500 mb-6 font-medium text-sm">Exam AI-900: Azure AI Fundamentals</p>
               
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 mb-8 flex items-start text-blue-900 text-sm leading-relaxed">
