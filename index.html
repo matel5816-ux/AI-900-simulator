@@ -17,7 +17,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // --- Lucide Icons 替換為獨立 SVG 元件 (確保無需安裝套件即可使用) ---
+    // --- Lucide Icons ---
     const Play = (props) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="6 3 20 12 6 21 6 3"/></svg>;
     const Clock = (props) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
     const Flag = (props) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>;
@@ -68,53 +68,27 @@
       "知識採礦 (Knowledge Mining)", "交談式 AI (Conversational AI)"
     ];
 
+    // ==========================================
+    // 💡 請在這裡覆蓋貼上你完整的 268 題程式碼
+    // ⚠️ 記得只複製 <div class="question-card"> 開始 到 </div> 結束的部分！
+    // ==========================================
     const EXAM_HTML_DATA = `
-      <!-- Question 250 -->
+      <!-- Question 250 (範例) -->
       <div class="question-card" id="question-250" data-category="outline-3">
          <div class="question-meta">描述 Azure 上的電腦視覺工作負載的特點 (15-20%)</div>
          <div class="question-title">第二百五十題 (選擇題)</div>
          <div class="question-body">
             <p>您應該使用下列哪種服務，從已掃描的檔中自動識取文字、索引鍵/值組以及資料表資料？</p>
             <ul>
-               <li><input type="radio" name="q250" value="A" id="q250a" checked><label for="q250a"> A. <span class="keyword-highlight">表格辨識器 (Form Recognizer)</span></label></li>
-               <li><input type="radio" name="q250" value="B" id="q250b"><label for="q250b"> B. 文字分析</label></li>
-               <li><input type="radio" name="q250" value="C" id="q250c"><label for="q250c"> C. 自訂視覺</label></li>
-               <li><input type="radio" name="q250" value="D" id="q250d"><label for="q250d"> D. Language Understanding (LUIS)</label></li>
+               <li><input type="radio" name="q250" value="A" id="q250a" checked><label for="q250a"> A. [x] <span class="keyword-highlight">表格辨識器 (Form Recognizer)</span></label></li>
+               <li><input type="radio" name="q250" value="B" id="q250b"><label for="q250b"> B. [ ] 文字分析</label></li>
+               <li><input type="radio" name="q250" value="C" id="q250c"><label for="q250c"> C. [ ] 自訂視覺</label></li>
+               <li><input type="radio" name="q250" value="D" id="q250d"><label for="q250d"> D. [ ] Language Understanding (LUIS)</label></li>
             </ul>
          </div>
          <div class="answer-content" id="answer-250">
             <div class="answer"><strong>答案：</strong> A. <span class="keyword-highlight">表格辨識器</span></div>
             <div class="rationale"><strong>解析：</strong>從已掃描的檔中自動識別和提取文字、索引鍵/值組以及表格資料，是 Azure AI 文件智慧（先前稱為表格辨識器）服務的核心功能。</div>
-         </div>
-      </div>
-      <!-- Question 251 -->
-      <div class="question-card" id="question-251" data-category="outline-1">
-         <div class="question-meta">描述人工智慧工作負載和考量 (20-25%)</div>
-         <div class="question-title">第二百五十一題 (下拉選單題/填充題)</div>
-         <div class="question-body">
-            <p>請選取可正確完成句子的答案。</p>
-            <p>根據 Microsoft 責任 AI 的 <span class="keyword-highlight">公平性</span> 準則，AI 系統不應反映用於為訓練系統的資料集偏差。</p>
-         </div>
-         <div class="answer-content" id="answer-251">
-            <div class="answer"><strong>答案：</strong> <span class="keyword-highlight">公平性</span></div>
-            <div class="rationale"><strong>解析：</strong>公平性 (Fairness) 原則強調 AI 系統應該公平對待所有人，避免基於各種特徵產生有偏見的結果。確保 AI 系統不反映訓練資料中的偏差是實現公平性的重要方面。</div>
-         </div>
-      </div>
-      <!-- Question 3 -->
-      <div class="question-card" id="question-3" data-category="outline-4">
-         <div class="question-meta">描述 Azure 上自然語言處理 (NLP) 工作負載的特點 (25-30%)</div>
-         <div class="question-title">第三題 (是/否題)</div>
-         <div class="question-body">
-            <p>在下列每一項敘述中，如果敘述成立，請選取 [是]。否則，請選取 [否]。</p>
-            <div class="yes-no-item"><span class="yes-no-question-text">會回答諸如「我的下一場約會是何時?」等問題的家用智慧型裝置為交談式 AI 的範例。</span></div>
-            <div class="yes-no-item"><span class="yes-no-question-text">為預先錄製影片自動產生字幕是交談式 AI 的範例。</span></div>
-         </div>
-         <div class="answer-content" id="answer-3">
-            <div class="answer">
-               1. <span class="yes-no-answer-feedback yes-no-correct">是</span><br>
-               2. <span class="yes-no-answer-feedback yes-no-incorrect">否</span>
-            </div>
-            <div class="rationale"><strong>解析：</strong>家用智慧型裝置能理解並回應使用者的語音指令，進行互動式對話，這是交談式 AI。而自動產生字幕主要是語音轉換文字 (STT) 的單向功能，本身並不構成雙向互動的交談式 AI。</div>
          </div>
       </div>
     `;
@@ -215,30 +189,40 @@
             }
             bodyInputs.forEach(inp => { inp.value = ''; inp.removeAttribute('value'); });
           }
-          // 3. 標準單選/多選題
+          // ★ 3. 標準單選/多選題 (新增防洩題 [x] 抹除技術) ★
           else if (radioCheck.length > 0) {
             type = 'choice';
-            let correctCount = 0;
             bodyClone.querySelectorAll('input').forEach((inp, idx) => {
               const key = inp.id || inp.name || inp.value || `opt_${idx}`;
               inp.setAttribute('data-key', key); 
               
-              if (inp.hasAttribute('checked') || inp.checked) {
-                correctAnswers[key] = true;
-                correctCount++;
-                inp.removeAttribute('checked');
-                inp.checked = false;
+              let isCorrect = inp.hasAttribute('checked') || inp.checked;
+
+              // 尋找選項文字，並識別是否有 [x]
+              const label = bodyClone.querySelector(`label[for="${inp.id}"]`) || inp.closest('label') || inp.closest('li');
+              if (label) {
+                 // 偵測文字中是否含有 [x] 或 [X]
+                 if (/\[\s*[xX]\s*\]/.test(label.textContent)) {
+                    isCorrect = true;
+                 }
+                 // 【核心防洩題機制】將 [ ]、[x]、[X] 直接從畫面上抹除
+                 label.innerHTML = label.innerHTML.replace(/\[\s*[xX]?\s*\]\s*/g, '');
               }
+
+              if (isCorrect) {
+                correctAnswers[key] = true;
+              }
+              inp.removeAttribute('checked');
+              inp.checked = false;
             });
             maxPoints = 1;
           }
-          // ★ 4. AI 智能還原選擇題 (針對沒選項、填空、或是答案洩漏的題目) ★
+          // 4. AI 智能還原選擇題
           else {
             type = 'choice';
             let correctAnswerText = '';
             let distractors = [];
 
-            // 如果是下拉選單文字，解析裡面的選項
             const dropdownMatch = bodyClone.innerHTML.match(/\[下拉選單，可見選項：(.*?)\]/);
             if (dropdownMatch) {
               const optionsStr = dropdownMatch[1];
@@ -246,14 +230,12 @@
               bodyClone.innerHTML = bodyClone.innerHTML.replace(dropdownMatch[0], ' <b style="color:#0078D4;">[ _______ ]</b> ');
             }
 
-            // 從官方解答區抓取正解
             const ansStrong = answerNode.querySelector('.answer');
             if (ansStrong) {
               const highlight = ansStrong.querySelector('.keyword-highlight') || ansStrong;
               correctAnswerText = highlight.textContent.replace('答案：', '').replace(/^[A-Z]\.\s*/, '').trim();
             }
 
-            // 如果題目本體已經洩漏了答案 (通常包在 .keyword-highlight 裡)，將它挖空！
             const leakedAnswers = bodyClone.querySelectorAll('.keyword-highlight');
             if (leakedAnswers.length > 0) {
               if (!correctAnswerText) correctAnswerText = leakedAnswers[0].textContent.replace(/^[A-Z]\.\s*/, '').trim();
@@ -262,25 +244,21 @@
               });
             }
 
-            // 如果選項不足4個，從 AI-900 名詞庫中抽出混淆選項
             if (correctAnswerText && distractors.length < 4) {
                if (!distractors.includes(correctAnswerText)) distractors.push(correctAnswerText);
                const pool = AI900_TERMS.filter(t => t !== correctAnswerText && !distractors.includes(t));
-               pool.sort(() => 0.5 - Math.random()); // 洗牌
+               pool.sort(() => 0.5 - Math.random()); 
                while (distractors.length < 4 && pool.length > 0) {
                   distractors.push(pool.pop());
                }
             }
 
-            // 確保正解一定在選項裡
             if (correctAnswerText && !distractors.includes(correctAnswerText)) {
                distractors[0] = correctAnswerText;
             }
 
-            // 打亂生成的選項順序
             distractors.sort(() => 0.5 - Math.random());
 
-            // 動態生成 HTML 選擇題結構
             if (distractors.length > 0) {
                let optionsHtml = '<ul style="margin-top: 20px;">';
                const optionLetters = ['A', 'B', 'C', 'D'];
@@ -288,9 +266,7 @@
                   const isCorrect = opt === correctAnswerText;
                   const inputId = `${qId}_auto_${idx}`;
                   
-                  if (isCorrect) {
-                     correctAnswers[inputId] = true;
-                  }
+                  if (isCorrect) correctAnswers[inputId] = true;
                   
                   optionsHtml += `<li><label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
                      <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${opt}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
@@ -515,7 +491,7 @@
                 <Info className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
                   系統目前載入了 <strong className="text-lg">{allQuestions.length}</strong> 道試題。<br/>
-                  <span className="font-bold text-blue-700">✨ 全新功能啟用</span>：遇到沒有給選項的填空或洩題，系統將自動為您挖空並生成四選一的標準選擇題！
+                  <span className="font-bold text-blue-700">✨ 防洩題機制已啟動</span>：自動隱藏原始題庫中的 [x] 與 [ ] 標記，並準確記錄正解。
                 </div>
               </div>
               
@@ -565,10 +541,10 @@
 
             <div className="max-w-xl w-full">
                <div className="bg-slate-200 border border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center text-center">
-                 <p className="text-slate-600 font-medium mb-3">想要匯入完整的 268 題題庫嗎？</p>
+                 <p className="text-slate-600 font-medium mb-3">想要匯入最新的 HTML 題庫檔嗎？</p>
                  <label className="flex items-center justify-center px-6 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-md font-semibold cursor-pointer transition-colors shadow-sm hover:bg-slate-50 hover:border-slate-400">
                     <UploadCloud className="w-5 h-5 mr-2 text-slate-500" />
-                    匯入完整 HTML 題庫檔
+                    手動上傳題庫檔
                     <input type="file" accept=".html" className="absolute hidden" onChange={handleFileUpload} />
                  </label>
                </div>
@@ -588,17 +564,17 @@
               <div className="px-6 py-3 bg-[#0078D4] text-white font-semibold text-sm">
                 AI-900: Azure AI Fundamentals
               </div>
-              <div className="flex items-center space-x-6 px-6">
+              <div className="flex items-center space-x-4 px-4 sm:space-x-6 sm:px-6">
                 <div className={`flex items-center font-mono font-medium ${timeLeft < 300 ? 'text-red-600' : 'text-slate-700'}`}>
-                  <Clock className="w-4 h-4 mr-2" />
-                  Time Remaining: {formatTime(timeLeft)}
+                  <Clock className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Time Remaining:</span> {formatTime(timeLeft)}
                 </div>
                 <button 
                   onClick={() => {
                     saveCurrentAnswers(); 
                     setAppState('review_screen');
                   }}
-                  className="text-sm font-semibold text-[#0078D4] hover:underline"
+                  className="text-sm font-semibold text-[#0078D4] hover:underline whitespace-nowrap"
                 >
                   Exam Review
                 </button>
@@ -606,9 +582,9 @@
             </header>
 
             <main className="flex-1 overflow-y-auto flex justify-center p-4 sm:p-8">
-              <div className="w-full max-w-4xl bg-white border border-slate-300 shadow-sm flex flex-col h-full max-h-[85vh]">
+              <div className="w-full max-w-4xl bg-white border border-slate-300 shadow-sm flex flex-col h-full sm:max-h-[85vh]">
                 
-                <div className="bg-[#f1f5f9] px-8 py-4 border-b border-slate-300 flex justify-between items-center">
+                <div className="bg-[#f1f5f9] px-6 py-4 sm:px-8 border-b border-slate-300 flex justify-between items-center">
                   <div>
                     <h2 className="text-xl font-bold text-[#1e293b]">Question {currentIndex + 1}</h2>
                     <span className="text-xs font-semibold text-slate-500 tracking-wider uppercase">Of {examQuestions.length}</span>
@@ -627,7 +603,7 @@
                   </label>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-8 py-8 exam-content-area">
+                <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 exam-content-area">
                   {currentQ.meta && (
                     <div className="mb-6 inline-block text-slate-600 text-sm font-normal" dangerouslySetInnerHTML={{ __html: currentQ.meta.replace(/<br>/g, ' | ') }} />
                   )}
@@ -641,13 +617,13 @@
                       className="flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-md font-medium transition-colors text-sm shadow-sm"
                     >
                       <Info className="w-4 h-4 mr-2 text-slate-500" />
-                      {showCurrentAnswer ? '隱藏答案與解析' : '顯示答案與解析 (Practice Mode)'}
+                      {showCurrentAnswer ? '隱藏答案與解析' : '顯示答案與解析'}
                     </button>
 
                     {showCurrentAnswer && (
                       <div className="mt-4 bg-[#f0fdf4] border border-[#bbf7d0] p-5 rounded-md exam-content-area animate-in fade-in duration-200">
                         <div className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-3 flex items-center">
-                          <CheckCircle2 className="w-4 h-4 mr-1"/> Official Answer & Explanation
+                          <CheckCircle2 className="w-4 h-4 mr-1"/> Official Answer
                         </div>
                         <div dangerouslySetInnerHTML={{ __html: currentQ.answerHTML }} />
                       </div>
@@ -655,7 +631,7 @@
                   </div>
                 </div>
 
-                <div className="bg-[#f8fafc] px-8 py-4 border-t border-slate-300 flex justify-between items-center">
+                <div className="bg-[#f8fafc] px-6 py-4 sm:px-8 border-t border-slate-300 flex justify-between items-center">
                   <button 
                     onClick={() => {
                       saveCurrentAnswers(); 
@@ -691,11 +667,11 @@
               <div className="font-mono font-medium text-slate-700"><Clock className="inline w-4 h-4 mr-2 mb-0.5" />{formatTime(timeLeft)}</div>
             </header>
 
-            <main className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
-              <div className="bg-white border border-slate-300 shadow-sm p-8">
-                <p className="mb-6 text-slate-600 font-medium">Click on any question number to review it. Questions marked for review have a flag.</p>
+            <main className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-5xl mx-auto w-full">
+              <div className="bg-white border border-slate-300 shadow-sm p-4 sm:p-8">
+                <p className="mb-6 text-slate-600 font-medium text-sm sm:text-base">Click on any question number to review it. Questions marked for review have a flag.</p>
                 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-10">
                   {examQuestions.map((q, idx) => {
                     const hasAnswer = userAnswers[q.id] && Object.keys(userAnswers[q.id]).length > 0;
                     const isMarked = markedForReview[q.id];
@@ -716,10 +692,10 @@
                 </div>
 
                 <div className="flex justify-between items-center border-t border-slate-200 pt-6">
-                  <button onClick={() => setAppState('exam')} className="px-6 py-2 border border-slate-300 rounded font-semibold text-slate-700 hover:bg-slate-50">
+                  <button onClick={() => setAppState('exam')} className="px-4 py-2 sm:px-6 border border-slate-300 rounded font-semibold text-slate-700 hover:bg-slate-50">
                     Return to Exam
                   </button>
-                  <button onClick={() => setAppState('results')} className="px-8 py-2 bg-[#0078D4] text-white rounded font-bold hover:bg-[#005a9e] shadow">
+                  <button onClick={() => setAppState('results')} className="px-6 py-2 sm:px-8 bg-[#0078D4] text-white rounded font-bold hover:bg-[#005a9e] shadow">
                     Finish Exam
                   </button>
                 </div>
@@ -738,10 +714,10 @@
             <style>{originalStyles}</style>
             <div className="max-w-4xl mx-auto space-y-6">
               
-              <div className="bg-white border border-slate-300 shadow-sm p-10 flex flex-col items-center relative overflow-hidden">
+              <div className="bg-white border border-slate-300 shadow-sm p-6 sm:p-10 flex flex-col items-center relative overflow-hidden">
                 <div className={`absolute top-0 w-full h-2 ${passed ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                <h1 className="text-3xl font-light text-slate-800 mb-6">Microsoft Certification Score Report</h1>
-                <h2 className="text-xl font-semibold mb-8 text-[#0078D4]">AI-900: Azure AI Fundamentals</h2>
+                <h1 className="text-2xl sm:text-3xl font-light text-slate-800 mb-4 sm:mb-6 text-center">Microsoft Certification Score Report</h1>
+                <h2 className="text-lg sm:text-xl font-semibold mb-6 sm:mb-8 text-[#0078D4] text-center">AI-900: Azure AI Fundamentals</h2>
                 
                 <div className="text-center mb-8">
                   <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Your Score</div>
@@ -749,7 +725,7 @@
                   <div className="text-sm text-slate-500 mt-2">Passing Score: 700</div>
                 </div>
                 
-                <div className={`text-2xl font-bold px-12 py-3 border-2 ${passed ? 'border-emerald-500 text-emerald-600' : 'border-rose-500 text-rose-600'}`}>
+                <div className={`text-xl sm:text-2xl font-bold px-10 sm:px-12 py-3 border-2 ${passed ? 'border-emerald-500 text-emerald-600' : 'border-rose-500 text-rose-600'}`}>
                   {passed ? 'PASS' : 'FAIL'}
                 </div>
                 
@@ -774,8 +750,8 @@
                   }
 
                   return (
-                    <div key={q.id} id={`result-q-${q.id}`} className="bg-white border border-slate-300 shadow-sm p-6">
-                      <div className="flex justify-between items-center mb-4 pb-2 border-b">
+                    <div key={q.id} id={`result-q-${q.id}`} className="bg-white border border-slate-300 shadow-sm p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 pb-2 border-b gap-2">
                         <span className="font-bold text-[#1e293b]">Question {idx + 1}</span>
                         {isCorrect ? 
                           <span className="flex items-center text-emerald-600 font-bold text-sm"><CheckCircle2 className="w-5 h-5 mr-1"/> Correct</span> : 
@@ -788,9 +764,9 @@
                         <form dangerouslySetInnerHTML={{ __html: q.bodyHTML }} />
                       </div>
 
-                      <div className="bg-slate-50 border border-slate-200 p-5 rounded-md exam-content-area">
+                      <div className="bg-slate-50 border border-slate-200 p-4 sm:p-5 rounded-md exam-content-area overflow-x-auto">
                         <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center">
-                          <CheckCircle2 className="w-4 h-4 mr-1 text-slate-400"/> Official Answer & Explanation
+                          <CheckCircle2 className="w-4 h-4 mr-1 text-slate-400"/> Official Answer
                         </div>
                         <div dangerouslySetInnerHTML={{ __html: q.answerHTML }} />
                       </div>
