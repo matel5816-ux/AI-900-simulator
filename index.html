@@ -14326,11 +14326,11 @@
             if (columns.length > 0) {
                 columns[0].classList.add('options-pool');
                 
-                // 加入操作提示
+                // 加入操作提示 (🔧 修復此處使用 prepend 取代 insertBefore，避免 HTML 排版嵌套造成的報錯)
                 const tip = document.createElement('div');
                 tip.className = "text-xs text-blue-600 font-bold mb-3 flex items-center bg-blue-50 p-2 rounded border border-blue-100";
                 tip.innerHTML = `<svg class="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>請點擊此處選項，再點右側空格放置 (可重複使用)`;
-                columns[0].insertBefore(tip, columns[0].querySelector('.matching-item'));
+                columns[0].prepend(tip);
             }
           }
           // 3. ✨單一填空/下拉選單 - 轉換為 4選1單選題 (底線 + Radio選項)
