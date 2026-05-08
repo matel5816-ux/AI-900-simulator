@@ -14156,7 +14156,7 @@
   </template>
   <!-- ========================================== -->
 
-  <div id="root"></div>
+ <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
@@ -14209,6 +14209,7 @@
       .dnd-slot { transition: all 0.2s; background-color: #f8fafc; }
       .dnd-slot:hover { border-color: #0078D4; background-color: #eff6ff; }
       .options-pool { box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03); }
+      .dnd-slot .matching-item { margin-bottom: 0; padding: 6px 10px; font-size: 14px; width: 100%; border-color: #0078D4; background-color: #eff6ff; }
     `;
 
     const AI900_TERMS = [
@@ -14288,22 +14289,21 @@
               correctAnswers[`${qId}_yn_${i}`] = fb.textContent.trim() === '是' ? 'Yes' : 'No';
             });
           }
-          // 2. ✨配對題 (Matching) - 轉換為 Tap-to-Drop
+          // 2. ✨配對題 (Matching) - 將左側轉為選項池 (無限影分身機制)
           else if (matchingCheck.length > 0) {
             type = 'dragdrop';
-            let optionPool = new Set();
             let letterMap = {};
             
-            // 從左側欄位抽取選項
+            // 從左側欄位抽取選項，並將左側元素直接轉換為 dnd-item
             bodyClone.querySelectorAll('.matching-item').forEach(item => {
                 let fullText = item.textContent.trim();
                 let match = fullText.match(/^([A-Z])\.\s*(.+)/);
-                if (match) {
-                    optionPool.add(match[2].trim());
-                    letterMap[match[1]] = match[2].trim();
-                } else {
-                    optionPool.add(fullText);
-                }
+                let val = match ? match[2].trim() : fullText;
+                
+                if (match) letterMap[match[1]] = match[2].trim();
+                
+                item.classList.add('dnd-item', 'cursor-pointer');
+                item.setAttribute('data-value', val.replace(/"/g, '&quot;'));
             });
 
             // 將右側作答區轉換為放置框
@@ -14322,18 +14322,17 @@
             });
             maxPoints = slotIndex;
 
-            // 生成選項池 UI
-            const optionsHtml = `
-                <div class="options-pool p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6 flex flex-wrap gap-2 min-h-[60px] cursor-pointer relative z-10">
-                    <div class="w-full text-sm text-blue-600 font-bold mb-1 flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
-                        請先點擊選項，再點擊作答區放置 (點擊作答區內選項可退回)
-                    </div>
-                    ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${opt.replace(/"/g, '&quot;')}">${opt}</div>`).join('')}
-                </div>
-            `;
-            const container = bodyClone.querySelector('.matching-container');
-            if (container) container.insertAdjacentHTML('beforebegin', optionsHtml);
+            // 將左側容器設為 options-pool
+            const columns = bodyClone.querySelectorAll('.matching-column');
+            if (columns.length > 0) {
+                columns[0].classList.add('options-pool');
+                
+                // 加入操作提示
+                const tip = document.createElement('div');
+                tip.className = "text-xs text-blue-600 font-bold mb-3 flex items-center bg-blue-50 p-2 rounded border border-blue-100";
+                tip.innerHTML = `<svg class="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>請點擊此處選項，再點右側空格放置 (可重複使用)`;
+                columns[0].insertBefore(tip, columns[0].querySelector('.matching-item'));
+            }
           }
           // 3. ✨單一填空/下拉選單 - 轉換為 4選1單選題 (底線 + Radio選項)
           else if ((selectCheck.length === 1 && !radioCheck.length) || (highlightCheck.length === 1 && !radioCheck.length) || /\[下拉選單，可見選項：(.*?)\]/.test(bodyClone.innerHTML)) {
@@ -14650,7 +14649,7 @@
         setUserAnswers(prev => ({ ...prev, [qId]: newState }));
       };
 
-      // ✨ 點擊配對 (Tap-to-Drop) 核心事件邏輯
+      // ✨ 點擊配對 (Tap-to-Drop) 核心事件邏輯 (包含配對題無限影分身)
       useEffect(() => {
         const formElement = formRef.current;
         if (!formElement || appState !== 'exam') return;
@@ -14677,27 +14676,48 @@
             } else if (slot) {
                 // 點擊作答空格
                 if (selectedItem) {
-                    // 若空格已有答案，先退回
-                    const existingItem = slot.querySelector('.dnd-item');
-                    const poolEl = formElement.querySelector('.options-pool');
-                    if (existingItem && poolEl) poolEl.appendChild(existingItem);
+                    const isReusable = selectedItem.classList.contains('matching-item');
+                    let itemToPlace = isReusable ? selectedItem.cloneNode(true) : selectedItem;
+                    itemToPlace.classList.remove('selected');
                     
-                    slot.appendChild(selectedItem);
-                    selectedItem.classList.remove('selected');
-                    selectedItem = null;
+                    // 若空格已有答案，先清除或退回
+                    const existingItem = slot.querySelector('.dnd-item');
+                    if (existingItem) {
+                        if (existingItem.classList.contains('matching-item')) {
+                            existingItem.remove(); // 是分身，直接刪除
+                        } else {
+                            const poolEl = formElement.querySelector('.options-pool');
+                            if (poolEl) poolEl.appendChild(existingItem);
+                        }
+                    }
+                    
+                    slot.appendChild(itemToPlace);
+                    
+                    if (isReusable) {
+                        selectedItem.classList.remove('selected');
+                        selectedItem = null;
+                    } else {
+                        selectedItem = null;
+                    }
                     updateDndInput(slot);
                 } else if (item) {
-                    // 點擊空格內的答案 -> 退回選項池
-                    const closestPool = formElement.querySelector('.options-pool');
-                    if (closestPool) {
-                        closestPool.appendChild(item);
-                        updateDndInput(slot);
+                    // 點擊空格內的答案 -> 退回或刪除
+                    if (item.classList.contains('matching-item')) {
+                        item.remove();
+                    } else {
+                        const closestPool = formElement.querySelector('.options-pool');
+                        if (closestPool) {
+                            closestPool.appendChild(item);
+                        }
                     }
+                    updateDndInput(slot);
                 }
                 e.stopPropagation();
             } else if (pool && selectedItem) {
-                // 點擊池子空白處 -> 放下選項
-                pool.appendChild(selectedItem);
+                // 點擊池子空白處 -> 放下選項 (只適用於非配對題的移動)
+                if (!selectedItem.classList.contains('matching-item')) {
+                    pool.appendChild(selectedItem);
+                }
                 selectedItem.classList.remove('selected');
                 selectedItem = null;
                 formElement.querySelectorAll('.dnd-slot').forEach(updateDndInput);
@@ -14751,12 +14771,21 @@
               inp.value = savedState[key] || '';
               
               if (slot && pool) {
-                  // 先把目前框裡的丟回池子
-                  Array.from(slot.querySelectorAll('.dnd-item')).forEach(item => pool.appendChild(item));
+                  // 先把目前框裡的清掉或丟回池子
+                  Array.from(slot.querySelectorAll('.dnd-item')).forEach(item => {
+                      if (item.classList.contains('matching-item')) item.remove();
+                      else pool.appendChild(item);
+                  });
                   // 再把存檔的抓進框裡
                   savedVals.forEach(val => {
-                      const item = Array.from(pool.querySelectorAll('.dnd-item')).find(el => el.getAttribute('data-value') === val);
-                      if (item) slot.appendChild(item);
+                      const originalItem = Array.from(pool.querySelectorAll('.dnd-item')).find(el => el.getAttribute('data-value') === val);
+                      if (originalItem) {
+                          if (originalItem.classList.contains('matching-item')) {
+                              slot.appendChild(originalItem.cloneNode(true));
+                          } else {
+                              slot.appendChild(originalItem);
+                          }
+                      }
                   });
               }
             } else if (inp.type === 'text' || inp.tagName === 'TEXTAREA') {
@@ -14792,8 +14821,14 @@
                 const slot = container.querySelector(`.dnd-slot[data-input-id="${inp.id}"]`);
                 if (slot && pool) {
                     savedVals.forEach(val => {
-                        const item = Array.from(pool.querySelectorAll('.dnd-item')).find(el => el.getAttribute('data-value') === val);
-                        if (item) slot.appendChild(item);
+                        const originalItem = Array.from(pool.querySelectorAll('.dnd-item')).find(el => el.getAttribute('data-value') === val);
+                        if (originalItem) {
+                            if (originalItem.classList.contains('matching-item')) {
+                                slot.appendChild(originalItem.cloneNode(true));
+                            } else {
+                                slot.appendChild(originalItem);
+                            }
+                        }
                     });
                 }
               } else if (inp.type === 'text' || inp.tagName === 'TEXTAREA') {
