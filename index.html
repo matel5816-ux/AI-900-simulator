@@ -14214,7 +14214,7 @@
       </div>
     `;
 
- // --- 主程式開始 ---
+   // --- 主程式開始 ---
     function AI900PearsonVueSimulator() {
       const [appState, setAppState] = useState('parsing'); 
       const [allQuestions, setAllQuestions] = useState([]);
@@ -14311,7 +14311,7 @@
             }
             bodyInputs.forEach(inp => { inp.value = ''; inp.removeAttribute('value'); });
           }
-          // 3. 標準單選/多選題 (防洩題 [x] 抹除技術)
+          // 3. 標準單選/多選題 (防洩題)
           else if (radioCheck.length > 0) {
             type = 'choice';
             bodyClone.querySelectorAll('input').forEach((inp, idx) => {
@@ -14320,13 +14320,11 @@
               
               let isCorrect = inp.hasAttribute('checked') || inp.checked;
 
-              // 尋找選項文字，並識別是否有 [x]
               const label = bodyClone.querySelector(`label[for="${inp.id}"]`) || inp.closest('label') || inp.closest('li');
               if (label) {
                  if (/\[\s*[xX]\s*\]/.test(label.textContent)) {
                     isCorrect = true;
                  }
-                 // 抹除 [ ]、[x]、[X]
                  label.innerHTML = label.innerHTML.replace(/\[\s*[xX]?\s*\]\s*/g, '');
               }
 
@@ -14336,7 +14334,7 @@
             });
             maxPoints = 1;
           }
-          // 4. ✨下拉選單題 (Dropdown) - 解決產生多餘選項問題
+          // 4. 原生下拉選單題
           else if (selectCheck.length > 0) {
              type = 'dropdown';
              maxPoints = selectCheck.length;
@@ -14345,7 +14343,6 @@
                 sel.setAttribute('data-key', key);
                 
                 let correctVal = "";
-                // 找出預設被選中的項目作為正解
                 Array.from(sel.options).forEach(opt => {
                    if (opt.hasAttribute('selected') || opt.selected) {
                       correctVal = opt.value || opt.text;
@@ -14355,7 +14352,6 @@
                 });
                 if (correctVal) correctAnswers[key] = correctVal;
                 
-                // 如果沒有「請選擇」的空選項，手動補一個給他，以隱藏答案
                 let hasEmpty = Array.from(sel.options).some(opt => opt.value.trim() === '');
                 if (!hasEmpty) {
                    const defaultOpt = document.createElement('option');
@@ -14365,113 +14361,177 @@
                    defaultOpt.selected = true;
                    sel.insertBefore(defaultOpt, sel.firstChild);
                 }
-                sel.value = ""; // 強制重置為未選擇
+                sel.value = ""; 
              });
           }
-          // 5. ✨拖曳與排序題 (作答區) - 解決答案洩漏問題
-          else if (/(作答區|Answer Area)/i.test(bodyClone.innerText)) {
-             type = 'dragdrop';
-             maxPoints = 1;
-             
-             const html = bodyClone.innerHTML;
-             const matchArea = html.match(/(作答區[^<]*|Answer Area[^<]*)/i);
-             
-             if (matchArea) {
-                 const indexArea = html.indexOf(matchArea[0]);
-                 const beforeArea = html.substring(0, indexArea + matchArea[0].length);
-                 let afterArea = html.substring(indexArea + matchArea[0].length);
-                 
-                 let answerHtml = afterArea;
-                 let optionsHtml = '';
-                 
-                 // 尋找「選項區」的分界點
-                 const matchOptions = afterArea.match(/(提供的模組選項|選項|Options)/i);
-                 if (matchOptions) {
-                     const indexOptions = afterArea.indexOf(matchOptions[0]);
-                     answerHtml = afterArea.substring(0, indexOptions);
-                     optionsHtml = afterArea.substring(indexOptions);
-                 }
-                 
-                 // 如果真的有答案區塊，將其抽取並替換為填答框
-                 if (answerHtml.replace(/<[^>]+>/g, '').trim().length > 0) {
-                     const tempDiv = document.createElement('div');
-                     tempDiv.innerHTML = answerHtml;
-                     correctAnswers['dragdrop_1'] = tempDiv.innerText.trim();
-                     
-                     const replacement = `
-                         <div class="my-4 p-4 bg-amber-50 border border-amber-200 rounded">
-                            <p class="text-sm text-amber-800 font-bold mb-2">💡 系統已隱藏此區塊的原始答案</p>
-                            <textarea data-key="dragdrop_1" class="w-full p-3 border border-amber-300 rounded outline-none text-base bg-white" rows="3" placeholder="請在此輸入您的作答 (交卷後可於解析區比對正確答案)..."></textarea>
-                         </div>
-                     `;
-                     bodyClone.innerHTML = beforeArea + replacement + optionsHtml;
-                 } else {
-                     // 備用方案
-                     bodyClone.innerHTML += `<div class="mt-4"><textarea data-key="dragdrop_1" class="w-full p-3 border border-amber-300 rounded bg-amber-50" rows="3" placeholder="請在此輸入您的作答..."></textarea></div>`;
-                     correctAnswers['dragdrop_1'] = "請對照解析比對答案";
-                 }
-             }
-          }
-          // 6. AI 智能還原選擇題 (當以上皆非時才會執行)
           else {
-            type = 'choice';
-            let correctAnswerText = '';
-            let distractors = [];
+             // ✨ 5. 智慧互動式下拉選單轉換 (處理拖曳、填空、作答區)
+             let isAdvancedDragDrop = false;
+             let html = bodyClone.innerHTML;
+             const ansAreaRegex = /(作答區[^:：]*[:：]|Answer Area[^:：]*[:：]|依正確順序排列三項[:：]?|依序填入模組[:：]?)([\s\S]*)/i;
+             const match = html.match(ansAreaRegex);
+             
+             if (match) {
+                 isAdvancedDragDrop = true;
+                 type = 'dragdrop_select';
+                 const beforeArea = html.substring(0, match.index + match[1].length);
+                 let areaContent = match[2];
+                 let optionPool = new Set();
 
-            const dropdownMatch = bodyClone.innerHTML.match(/\[下拉選單，可見選項：(.*?)\]/);
-            if (dropdownMatch) {
-              const optionsStr = dropdownMatch[1];
-              distractors = optionsStr.split('、').map(o => o.replace(/<[^>]+>/g, '').trim());
-              bodyClone.innerHTML = bodyClone.innerHTML.replace(dropdownMatch[0], ' <b style="color:#0078D4;">[ _______ ]</b> ');
-            }
+                 // 提取作答區之後的「選項池」
+                 let afterOptionsHtml = '';
+                 const optHeaderRegex = /(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i;
+                 const optMatchInside = areaContent.match(optHeaderRegex);
+                 if (optMatchInside) {
+                     afterOptionsHtml = areaContent.substring(optMatchInside.index);
+                     areaContent = areaContent.substring(0, optMatchInside.index);
+                     
+                     let tempDiv = document.createElement('div');
+                     tempDiv.innerHTML = afterOptionsHtml;
+                     tempDiv.innerText.split('\n').forEach(line => {
+                         let t = line.trim().replace(/^[A-D]\.\s*/, '');
+                         if (t && !optHeaderRegex.test(t)) optionPool.add(t);
+                     });
+                 } else {
+                     // 提取作答區之前的「選項池」
+                     const optMatchBefore = beforeArea.match(optHeaderRegex);
+                     if (optMatchBefore) {
+                         let optBlock = beforeArea.substring(optMatchBefore.index);
+                         let tempDiv = document.createElement('div');
+                         tempDiv.innerHTML = optBlock;
+                         tempDiv.innerText.split('\n').forEach(line => {
+                             let t = line.trim().replace(/^[A-D]\.\s*/, '');
+                             if (t && !optHeaderRegex.test(t) && !/(作答區|Answer Area)/i.test(t)) {
+                                 optionPool.add(t);
+                             }
+                         });
+                     }
+                 }
 
-            const ansStrong = answerNode.querySelector('.answer');
-            if (ansStrong) {
-              const highlight = ansStrong.querySelector('.keyword-highlight') || ansStrong;
-              correctAnswerText = highlight.textContent.replace('答案：', '').replace(/^[A-Z]\.\s*/, '').trim();
-            }
+                 // 解析作答區並轉換為選單
+                 let tempArea = document.createElement('div');
+                 tempArea.innerHTML = areaContent;
+                 let slotIndex = 0;
 
-            const leakedAnswers = bodyClone.querySelectorAll('.keyword-highlight');
-            if (leakedAnswers.length > 0) {
-              if (!correctAnswerText) correctAnswerText = leakedAnswers[0].textContent.replace(/^[A-Z]\.\s*/, '').trim();
-              leakedAnswers.forEach(el => {
-                 el.outerHTML = '<b style="color:#0078D4;">[ _______ ]</b>';
-              });
-            }
+                 Array.from(tempArea.childNodes).forEach(node => {
+                     if (node.nodeType === Node.TEXT_NODE) {
+                         let text = node.textContent.trim();
+                         if (!text) return;
+                         let wrapper = document.createElement('div');
+                         wrapper.className = 'my-3';
+                         processNodeToDropdown(text, wrapper, optionPool, qId, slotIndex, correctAnswers);
+                         slotIndex++;
+                         tempArea.insertBefore(wrapper, node);
+                         tempArea.removeChild(node);
+                     } else if (node.nodeType === Node.ELEMENT_NODE) {
+                         if (node.tagName === 'BR') return;
+                         let text = node.textContent.trim();
+                         if (!text) return;
+                         processNodeToDropdown(text, node, optionPool, qId, slotIndex, correctAnswers);
+                         slotIndex++;
+                     }
+                 });
 
-            if (correctAnswerText && distractors.length < 4) {
-               if (!distractors.includes(correctAnswerText)) distractors.push(correctAnswerText);
-               const pool = AI900_TERMS.filter(t => t !== correctAnswerText && !distractors.includes(t));
-               pool.sort(() => 0.5 - Math.random()); 
-               while (distractors.length < 4 && pool.length > 0) {
-                  distractors.push(pool.pop());
-               }
-            }
+                 const finalOptionsHtml = Array.from(optionPool).map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                 tempArea.querySelectorAll('select.dynamic-dropdown').forEach(sel => {
+                     sel.innerHTML += finalOptionsHtml;
+                 });
 
-            if (correctAnswerText && !distractors.includes(correctAnswerText)) {
-               distractors[0] = correctAnswerText;
-            }
+                 bodyClone.innerHTML = beforeArea + tempArea.innerHTML + afterOptionsHtml;
+                 maxPoints = slotIndex > 0 ? slotIndex : 1;
+             } 
+             else if (bodyClone.querySelectorAll('.keyword-highlight').length >= 1 || /\[\s*_{3,}\s*\]/.test(bodyClone.innerHTML)) {
+                 // 填空題 (Inline Blanks) 轉換為選單
+                 isAdvancedDragDrop = true;
+                 type = 'dragdrop_select';
+                 let optionPool = new Set();
+                 const highlights = bodyClone.querySelectorAll('.keyword-highlight');
+                 maxPoints = highlights.length > 0 ? highlights.length : 1;
 
-            distractors.sort(() => 0.5 - Math.random());
+                 const optHeaderRegex = /(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i;
+                 const optMatch = bodyClone.innerHTML.match(optHeaderRegex);
+                 if (optMatch) {
+                      let after = bodyClone.innerHTML.substring(optMatch.index + optMatch[0].length);
+                      let temp = document.createElement('div');
+                      temp.innerHTML = after;
+                      temp.innerText.split('\n').forEach(line => {
+                          let t = line.trim().replace(/^[A-D]\.\s*/, '');
+                          if (t && !t.includes('隱藏此區塊')) optionPool.add(t);
+                      });
+                 }
 
-            if (distractors.length > 0) {
-               let optionsHtml = '<ul style="margin-top: 20px;">';
-               const optionLetters = ['A', 'B', 'C', 'D'];
-               distractors.forEach((opt, idx) => {
-                  const isCorrect = opt === correctAnswerText;
-                  const inputId = `${qId}_auto_${idx}`;
-                  
-                  if (isCorrect) correctAnswers[inputId] = true;
-                  
-                  optionsHtml += `<li><label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
-                     <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${opt}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
-                     <span>${optionLetters[idx]}. ${opt}</span>
-                  </label></li>`;
-               });
-               optionsHtml += '</ul>';
-               bodyClone.innerHTML += optionsHtml;
-               maxPoints = 1;
-            }
+                 if (highlights.length > 0) {
+                     highlights.forEach((hl, idx) => {
+                         let ans = hl.textContent.replace(/^[A-Z]\.\s*/, '').replace(/\[\s*[xX]?\s*\]/g, '').trim();
+                         if (ans) optionPool.add(ans);
+                         const inputKey = `${qId}_hl_${idx}`;
+                         correctAnswers[inputKey] = ans;
+
+                         hl.outerHTML = `<select data-key="${inputKey}" class="dynamic-dropdown mx-1 p-1.5 border border-slate-300 rounded-md outline-none focus:border-[#0078D4] font-semibold text-[#0078D4] bg-blue-50 cursor-pointer shadow-sm max-w-[200px] align-middle">
+                             <option value="">--- 請選擇 ---</option>
+                         </select>`;
+                     });
+                 }
+
+                 const finalOptionsHtml = Array.from(optionPool).map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                 bodyClone.querySelectorAll('select.dynamic-dropdown').forEach(sel => {
+                     sel.innerHTML += finalOptionsHtml;
+                 });
+             }
+             
+             // 6. AI 智慧單選還原 (Fallback)
+             if (!isAdvancedDragDrop) {
+                type = 'choice';
+                let correctAnswerText = '';
+                let distractors = [];
+
+                const dropdownMatch = bodyClone.innerHTML.match(/\[下拉選單，可見選項：(.*?)\]/);
+                if (dropdownMatch) {
+                  const optionsStr = dropdownMatch[1];
+                  distractors = optionsStr.split('、').map(o => o.replace(/<[^>]+>/g, '').trim());
+                  bodyClone.innerHTML = bodyClone.innerHTML.replace(dropdownMatch[0], ' <b style="color:#0078D4;">[ _______ ]</b> ');
+                }
+
+                const ansStrong = answerNode.querySelector('.answer');
+                if (ansStrong) {
+                  const highlight = ansStrong.querySelector('.keyword-highlight') || ansStrong;
+                  correctAnswerText = highlight.textContent.replace('答案：', '').replace(/^[A-Z]\.\s*/, '').trim();
+                }
+
+                if (correctAnswerText && distractors.length < 4) {
+                   if (!distractors.includes(correctAnswerText)) distractors.push(correctAnswerText);
+                   const pool = AI900_TERMS.filter(t => t !== correctAnswerText && !distractors.includes(t));
+                   pool.sort(() => 0.5 - Math.random()); 
+                   while (distractors.length < 4 && pool.length > 0) {
+                      distractors.push(pool.pop());
+                   }
+                }
+
+                if (correctAnswerText && !distractors.includes(correctAnswerText)) {
+                   distractors[0] = correctAnswerText;
+                }
+
+                distractors.sort(() => 0.5 - Math.random());
+
+                if (distractors.length > 0) {
+                   let optionsHtml = '<ul style="margin-top: 20px;">';
+                   const optionLetters = ['A', 'B', 'C', 'D'];
+                   distractors.forEach((opt, idx) => {
+                      const isCorrect = opt === correctAnswerText;
+                      const inputId = `${qId}_auto_${idx}`;
+                      
+                      if (isCorrect) correctAnswers[inputId] = true;
+                      
+                      optionsHtml += `<li><label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
+                         <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${opt}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
+                         <span>${optionLetters[idx]}. ${opt}</span>
+                      </label></li>`;
+                   });
+                   optionsHtml += '</ul>';
+                   bodyClone.innerHTML += optionsHtml;
+                   maxPoints = 1;
+                }
+             }
           }
 
           return {
@@ -14488,6 +14548,34 @@
 
         return parsed;
       };
+
+      // 輔助函式：將作答區節點轉換為下拉選單結構
+      function processNodeToDropdown(text, containerElement, optionPool, qId, slotIndex, correctAnswers) {
+          const colonMatch = text.match(/^([^:：]+)[:：]\s*(.+)$/);
+          let leftPart = '';
+          let rightPart = text;
+          let hasColon = false;
+
+          if (colonMatch) {
+              leftPart = colonMatch[1] + ' : ';
+              rightPart = colonMatch[2];
+              hasColon = true;
+          }
+
+          let ans = rightPart.replace(/\[\s*[xX]?\s*\]/g, '').trim();
+          if (ans && !ans.includes('隱藏此區塊')) {
+              optionPool.add(ans);
+              const inputKey = `${qId}_dd_${slotIndex}`;
+              correctAnswers[inputKey] = ans;
+              containerElement.innerHTML = `
+                  <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 my-2 bg-blue-50 border border-blue-100 rounded-lg shadow-sm">
+                      ${hasColon ? `<span class="font-bold text-slate-700 min-w-[120px]">${leftPart}</span>` : `<span class="font-bold text-slate-500 mr-2">步驟/順序 ${slotIndex + 1} :</span>`}
+                      <select data-key="${inputKey}" class="dynamic-dropdown flex-1 p-2.5 border-2 border-slate-300 rounded-md outline-none focus:border-[#0078D4] font-bold text-[#0078D4] bg-white cursor-pointer transition-colors shadow-sm w-full">
+                          <option value="">--- 請選擇配對 ---</option>
+                      </select>
+                  </div>`;
+          }
+      }
 
       useEffect(() => {
         setTimeout(() => {
@@ -14653,9 +14741,8 @@
             const cKeys = Object.keys(cAns);
             const isCorrect = uKeys.length === cKeys.length && uKeys.every(k => cKeys.includes(k));
             if (isCorrect) earnedPoints += 1;
-          } else if (q.type === 'dragdrop') {
+          } else if (q.type === 'dragdrop_select' || q.type === 'dragdrop') {
             Object.keys(cAns).forEach(key => {
-               // 模糊比對：移除空白並轉小寫後比對
                const u = (uAns[key] || '').replace(/\s+/g, '').toLowerCase();
                const c = (cAns[key] || '').replace(/\s+/g, '').toLowerCase();
                if (u === c && u !== '') earnedPoints += 1;
@@ -14687,19 +14774,19 @@
           <div className="min-h-screen bg-[#f3f4f6] flex flex-col items-center justify-center p-6 font-sans">
             <div className="bg-white rounded-xl shadow-lg p-10 max-w-xl w-full border-t-4 border-[#0078D4] mb-6 relative overflow-hidden">
               
-              {/* ✨ 專屬作者徽章 (右上角) */}
-              <div className="absolute top-0 right-0 bg-gradient-to-r from-red-600 to-[#0078D4] text-white text-xs font-bold px-4 py-1.5 rounded-bl-lg shadow-sm">
+              {/* ✨ 專屬作者徽章 */}
+              <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-[#0078D4] text-white text-xs font-bold px-4 py-1.5 rounded-bl-lg shadow-sm">
                 ✨ Designed by [EnChung]
               </div>
 
-              <h2 className="text-3xl font-bold text-slate-800 mb-2 mt-2">Pearson VUE AI-900 Lab</h2>
+              <h2 className="text-3xl font-bold text-slate-800 mb-2 mt-2">Pearson VUE 模擬考場</h2>
               <p className="text-slate-500 mb-6 font-medium text-sm">Exam AI-900: Azure AI Fundamentals</p>
               
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 mb-8 flex items-start text-blue-900 text-sm leading-relaxed">
                 <Info className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
                   系統目前載入了 <strong className="text-lg">{allQuestions.length}</strong> 道試題。<br/>
-                  <span className="font-bold text-blue-700">✨ 題型解析引擎 3.0</span>：已完美支援下拉選單題型，並自動隱藏拖曳排序題的預設洩漏答案！
+                  <span className="font-bold text-blue-700">✨ 全新互動介面</span>：拖曳題與填空題已全面升級為「智慧下拉選單」，讓您在手機上也能享受絲滑的作答體驗！
                 </div>
               </div>
               
@@ -14756,6 +14843,11 @@
                     <input type="file" accept=".html" className="absolute hidden" onChange={handleFileUpload} />
                  </label>
                </div>
+            </div>
+
+            {/* ✨ 底部作者版權宣告 */}
+            <div className="mt-8 text-center text-slate-400 text-sm font-medium">
+              &copy; {new Date().getFullYear()} Custom Simulator. Created with ❤️ by <span className="font-bold text-slate-500">[EnChung]</span>
             </div>
           </div>
         );
@@ -14953,7 +15045,7 @@
                     const uKeys = Object.keys(uAns).filter(k => uAns[k] === true);
                     const cKeys = Object.keys(cAns);
                     isCorrect = uKeys.length === cKeys.length && uKeys.every(k => cKeys.includes(k));
-                  } else if (q.type === 'dragdrop') {
+                  } else if (q.type === 'dragdrop_select' || q.type === 'dragdrop') {
                     isCorrect = Object.keys(cAns).every(key => {
                       const u = (uAns[key] || '').replace(/\s+/g, '').toLowerCase();
                       const c = (cAns[key] || '').replace(/\s+/g, '').toLowerCase();
