@@ -15,10 +15,9 @@
 
   <!-- ========================================== -->
   <!-- 💡 題庫保險箱：請將你完整的 268 題 HTML 程式碼貼在下方這兩個 template 標籤的正中間 -->
-  <!-- (這裡貼上題庫絕對不會再因為符號衝突導致白畫面了！) -->
   <!-- ========================================== -->
   <template id="exam-data">
-         <!-- Question 250 -->
+      <!-- Question 250 -->
       <div class="question-card" id="question-250" data-category="outline-3">
          <div class="question-meta">
             描述 Azure 上的電腦視覺工作負載的特點 (15-20%) <br> (3.2 識別 Azure 上的電腦視覺任務的工具和服務 - Form Recognizer/Document Intelligence)
@@ -14156,7 +14155,7 @@
   </template>
   <!-- ========================================== -->
 
- <div id="root"></div>
+  <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
@@ -14303,7 +14302,7 @@
                 if (match) letterMap[match[1]] = match[2].trim();
                 
                 item.classList.add('dnd-item', 'cursor-pointer');
-                item.setAttribute('data-value', val.replace(/"/g, '&quot;'));
+                item.setAttribute('data-value', String(val).replace(/"/g, '&quot;'));
             });
 
             // 將右側作答區轉換為放置框
@@ -14397,7 +14396,7 @@
                      const inputId = `${qId}_auto_${idx}`;
                      if (isCorrect) correctAnswers[inputId] = true;
                      optionsHtml += `<li><label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
-                        <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${opt.replace(/"/g, '&quot;')}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
+                        <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${String(opt).replace(/"/g, '&quot;')}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
                         <span>${optionLetters[idx]}. ${opt}</span>
                      </label></li>`;
                  });
@@ -14407,7 +14406,7 @@
             maxPoints = 1;
           }
           // 4. ✨多重下拉選單/作答區排序題 - 轉換為 Tap-to-Drop
-          else if (selectCheck.length > 1 || (/(作答區|Answer Area)/i.test(bodyClone.innerText) && !radioCheck.length)) {
+          else if (selectCheck.length > 1 || (/(作答區|Answer Area)/i.test(bodyClone.textContent) && !radioCheck.length)) {
              type = 'dragdrop';
              let optionPool = new Set();
              let slotIndex = 0;
@@ -14435,7 +14434,7 @@
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
                             請先點擊選項，再點擊下方空格放置 (點擊空格內選項可退回)
                         </div>
-                        ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${opt.replace(/"/g, '&quot;')}">${opt}</div>`).join('')}
+                        ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${String(opt).replace(/"/g, '&quot;')}">${opt}</div>`).join('')}
                     </div>`;
                  bodyClone.innerHTML = optionsHtml + bodyClone.innerHTML;
              } 
@@ -14453,27 +14452,27 @@
                      let afterOptionsHtml = '';
                      const optHeaderRegex = /(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i;
                      const optMatchInside = areaContent.match(optHeaderRegex);
+                     
+                     let optHtmlToParse = '';
                      if (optMatchInside) {
                          afterOptionsHtml = areaContent.substring(optMatchInside.index);
                          areaContent = areaContent.substring(0, optMatchInside.index);
-                         
-                         let tempDiv = document.createElement('div');
-                         tempDiv.innerHTML = afterOptionsHtml;
-                         tempDiv.innerText.split('\n').forEach(line => {
-                             let t = line.trim().replace(/^[A-D]\.\s*/, '');
-                             if (t && !optHeaderRegex.test(t)) optionPool.add(t);
-                         });
+                         optHtmlToParse = afterOptionsHtml;
                      } else {
                          const optMatchBefore = beforeArea.match(optHeaderRegex);
                          if (optMatchBefore) {
-                             let optBlock = beforeArea.substring(optMatchBefore.index);
-                             let tempDiv = document.createElement('div');
-                             tempDiv.innerHTML = optBlock;
-                             tempDiv.innerText.split('\n').forEach(line => {
-                                 let t = line.trim().replace(/^[A-D]\.\s*/, '');
-                                 if (t && !optHeaderRegex.test(t) && !/(作答區|Answer Area)/i.test(t)) optionPool.add(t);
-                             });
+                             optHtmlToParse = beforeArea.substring(optMatchBefore.index);
                          }
+                     }
+
+                     if (optHtmlToParse) {
+                         let tempDiv = document.createElement('div');
+                         // 將 br 和區塊元素轉換為換行，確保 textContent 能正確切割
+                         tempDiv.innerHTML = optHtmlToParse.replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>/gi, '\n');
+                         tempDiv.textContent.split('\n').forEach(line => {
+                             let t = line.trim().replace(/^[A-D]\.\s*/, '');
+                             if (t && !optHeaderRegex.test(t) && !/(作答區|Answer Area)/i.test(t)) optionPool.add(t);
+                         });
                      }
 
                      // 將作答區內容替換為放置框
@@ -14481,7 +14480,8 @@
                      tempArea.innerHTML = areaContent;
 
                      Array.from(tempArea.childNodes).forEach(node => {
-                         let text = node.textContent.trim();
+                         let text = node.textContent || '';
+                         text = text.trim();
                          if (!text) return;
                          
                          let ans = text.replace(/\[\s*[xX]?\s*\]/g, '').replace(/^[^:：]+[:：]\s*/, '').trim();
@@ -14517,7 +14517,7 @@
                                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
                                  請先點擊下方選項，再點擊作答區放置 (點擊作答區內選項可退回)
                              </div>
-                             ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${opt.replace(/"/g, '&quot;')}">${opt}</div>`).join('')}
+                             ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${String(opt).replace(/"/g, '&quot;')}">${opt}</div>`).join('')}
                          </div>
                      `;
                      bodyClone.innerHTML = optionsHtml + beforeArea.replace(/(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i, '') + tempArea.innerHTML;
@@ -14532,7 +14532,13 @@
               const key = inp.id || inp.name || inp.value || `opt_${idx}`;
               inp.setAttribute('data-key', key); 
               let isCorrect = inp.hasAttribute('checked') || inp.checked;
-              const label = bodyClone.querySelector(`label[for="${inp.id}"]`) || inp.closest('label') || inp.closest('li');
+              
+              let label = null;
+              if (inp.id) {
+                  try { label = bodyClone.querySelector(`label[for="${inp.id}"]`); } catch(e){}
+              }
+              label = label || inp.closest('label') || inp.closest('li');
+              
               if (label) {
                  if (/\[\s*[xX]\s*\]/.test(label.textContent)) isCorrect = true;
                  label.innerHTML = label.innerHTML.replace(/\[\s*[xX]?\s*\]\s*/g, '');
@@ -14559,17 +14565,24 @@
         return parsed;
       };
 
-      // ✨ 在元件載入時，直接讀取 HTML 中的 template
+      // ✨ 在元件載入時，直接讀取 HTML 中的 template (新增防彈 try-catch)
       useEffect(() => {
         setTimeout(() => {
-          const templateData = document.getElementById('exam-data');
-          if (templateData) {
-             const rawHTML = templateData.innerHTML;
-             const parsed = parseHTMLContent(rawHTML);
-             setAllQuestions(parsed);
-             setCustomCount(Math.min(10, parsed.length));
+          try {
+            const templateData = document.getElementById('exam-data');
+            if (templateData) {
+               const rawHTML = templateData.innerHTML || "";
+               const parsed = parseHTMLContent(rawHTML);
+               setAllQuestions(parsed);
+               setCustomCount(Math.min(10, parsed.length));
+            }
+          } catch (error) {
+            console.error("解析題庫時發生崩潰：", error);
+            alert("解析題庫發生錯誤！可能是某些題目格式異常，請按 F12 檢查控制台。\n\n錯誤訊息：" + error.message);
+          } finally {
+            // 無論成功失敗，都確保能進入設定畫面，解除無限載入
+            setAppState('setup');
           }
-          setAppState('setup');
         }, 300);
       }, []);
 
@@ -14580,10 +14593,16 @@
         setAppState('parsing'); 
         const reader = new FileReader();
         reader.onload = (evt) => {
-          const parsed = parseHTMLContent(evt.target.result);
-          setAllQuestions(parsed);
-          setCustomCount(Math.min(10, parsed.length));
-          setAppState('setup');
+          try {
+             const parsed = parseHTMLContent(evt.target.result);
+             setAllQuestions(parsed);
+             setCustomCount(Math.min(10, parsed.length));
+          } catch (error) {
+             console.error("解析檔案時發生崩潰：", error);
+             alert("解析上傳的檔案發生錯誤！\n\n錯誤訊息：" + error.message);
+          } finally {
+             setAppState('setup');
+          }
         };
         reader.readAsText(file);
       };
