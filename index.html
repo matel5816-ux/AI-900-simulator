@@ -51,15 +51,20 @@
       .matching-item { background-color: white; border: 1px solid #94a3b8; padding: 10px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-weight: 500; }
       .matching-answer-area { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #cbd5e1; }
       .matching-answer-area input[type="text"] { width: 45px; height: 36px; text-align: center; font-weight: bold; border: 2px solid #0078D4; border-radius: 4px; text-transform: uppercase; font-size: 16px; outline: none; }
-      .matching-answer-area input[type="text"]:focus { box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.3); }
+      
       .yes-no-item-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
 
       .result-locked input, .result-locked select { opacity: 0.8; cursor: not-allowed; }
       .result-locked label { cursor: not-allowed; }
       
-      /* 下拉選單特別樣式 */
-      .exam-content-area select { margin: 0 4px; padding: 4px 8px; border: 2px solid #94a3b8; border-radius: 4px; font-weight: bold; color: #0f172a; outline: none; cursor: pointer; transition: border-color 0.2s; }
-      .exam-content-area select:focus { border-color: #0078D4; }
+      /* ✨ 拖曳配對 (Tap-to-Drop) 特別樣式 */
+      .dnd-item { transition: all 0.2s; user-select: none; border-color: #cbd5e1; }
+      .dnd-item:hover { border-color: #94a3b8; }
+      .dnd-item.selected { border-color: #0078D4; background-color: #eff6ff; transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+      .dnd-slot:empty::before { content: '點擊選項後，再點擊此處放置'; color: #94a3b8; font-size: 14px; font-weight: normal; opacity: 0.7; pointer-events: none; }
+      .dnd-slot { transition: all 0.2s; background-color: #f8fafc; }
+      .dnd-slot:hover { border-color: #0078D4; background-color: #eff6ff; }
+      .options-pool { box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03); }
     `;
 
     const AI900_TERMS = [
@@ -14252,6 +14257,7 @@
           const matchingCheck = bodyClone.querySelectorAll('.matching-container');
           const radioCheck = bodyClone.querySelectorAll('input[type="radio"], input[type="checkbox"]');
           const selectCheck = bodyClone.querySelectorAll('select');
+          const highlightCheck = bodyClone.querySelectorAll('.keyword-highlight');
 
           // 1. 是/否題 (Yes/No)
           if (yesNoItems.length > 0) {
@@ -14280,258 +14286,261 @@
               correctAnswers[`${qId}_yn_${i}`] = fb.textContent.trim() === '是' ? 'Yes' : 'No';
             });
           }
-          // 2. 配對題 (Matching)
+          // 2. ✨配對題 (Matching) - 轉換為 Tap-to-Drop
           else if (matchingCheck.length > 0) {
-            type = 'matching';
+            type = 'dragdrop';
+            let optionPool = new Set();
+            let letterMap = {};
+            
+            // 從左側欄位抽取選項
+            bodyClone.querySelectorAll('.matching-item').forEach(item => {
+                let fullText = item.textContent.trim();
+                let match = fullText.match(/^([A-Z])\.\s*(.+)/);
+                if (match) {
+                    optionPool.add(match[2].trim());
+                    letterMap[match[1]] = match[2].trim();
+                } else {
+                    optionPool.add(fullText);
+                }
+            });
+
+            // 將右側作答區轉換為放置框
+            let slotIndex = 0;
+            const rightInputs = bodyClone.querySelectorAll('.matching-answer-area input[type="text"]');
             const ansInputs = answerNode.querySelectorAll('input[type="text"]');
-            const bodyInputs = bodyClone.querySelectorAll('input[type="text"]');
-            maxPoints = bodyInputs.length;
-            
-            let textAnswerMatches = answerNode.innerText.match(/([A-Z])/g);
-            
-            bodyInputs.forEach((inp, i) => {
-               const key = inp.id || `match_${i}`;
-               inp.setAttribute('data-key', key);
-            });
 
-            ansInputs.forEach((inp, i) => {
-              if(bodyInputs[i]) {
-                const key = bodyInputs[i].getAttribute('data-key');
-                correctAnswers[key] = inp.value.trim().toUpperCase();
-              }
-            });
+            rightInputs.forEach((inp, idx) => {
+                const inputKey = `${qId}_dd_${slotIndex}`;
+                let correctLetter = ansInputs[idx] ? ansInputs[idx].value.trim().toUpperCase() : '';
+                correctAnswers[inputKey] = letterMap[correctLetter] || correctLetter;
 
-            if(Object.keys(correctAnswers).length === 0 && textAnswerMatches && bodyInputs.length > 0) {
-               bodyInputs.forEach((inp, i) => {
-                  if(textAnswerMatches[i]) {
-                     const key = inp.getAttribute('data-key');
-                     correctAnswers[key] = textAnswerMatches[i];
-                  }
-               });
-            }
-            bodyInputs.forEach(inp => { inp.value = ''; inp.removeAttribute('value'); });
+                let slotHtml = `<div class="dnd-slot flex-1 min-h-[44px] min-w-[120px] border-2 border-dashed border-slate-400 bg-white rounded p-1 flex gap-2 flex-wrap cursor-pointer" data-input-id="${inputKey}"></div><input type="hidden" id="${inputKey}" data-key="${inputKey}" value="">`;
+                inp.outerHTML = slotHtml;
+                slotIndex++;
+            });
+            maxPoints = slotIndex;
+
+            // 生成選項池 UI
+            const optionsHtml = `
+                <div class="options-pool p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6 flex flex-wrap gap-2 min-h-[60px] cursor-pointer relative z-10">
+                    <div class="w-full text-sm text-blue-600 font-bold mb-1 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                        請先點擊選項，再點擊作答區放置 (點擊作答區內選項可退回)
+                    </div>
+                    ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${opt}">${opt}</div>`).join('')}
+                </div>
+            `;
+            const container = bodyClone.querySelector('.matching-container');
+            if (container) container.insertAdjacentHTML('beforebegin', optionsHtml);
           }
-          // 3. 標準單選/多選題 (防洩題)
+          // 3. ✨單一填空/下拉選單 - 轉換為 4選1單選題 (底線 + Radio選項)
+          else if ((selectCheck.length === 1 && !radioCheck.length) || (highlightCheck.length === 1 && !radioCheck.length) || /\[下拉選單，可見選項：(.*?)\]/.test(bodyClone.innerHTML)) {
+            type = 'choice';
+            let correctAnswerText = '';
+            let distractors = [];
+
+            // 處理原生 <select>
+            if (selectCheck.length === 1) {
+                const sel = selectCheck[0];
+                Array.from(sel.options).forEach(opt => {
+                    const val = opt.value || opt.text;
+                    if (val && !val.includes('請選擇') && val.trim() !== '') distractors.push(val);
+                    if (opt.hasAttribute('selected') || opt.selected) correctAnswerText = val;
+                });
+                sel.outerHTML = '<b style="color:#0078D4; font-size:1.1em; letter-spacing:2px;">[ _______ ]</b>';
+            }
+
+            // 處理 [下拉選單...] 標籤
+            const dropdownMatch = bodyClone.innerHTML.match(/\[下拉選單，可見選項：(.*?)\]/);
+            if (dropdownMatch) {
+                const optionsStr = dropdownMatch[1];
+                distractors.push(...optionsStr.split('、').map(o => o.replace(/<[^>]+>/g, '').trim()));
+                bodyClone.innerHTML = bodyClone.innerHTML.replace(dropdownMatch[0], ' <b style="color:#0078D4; font-size:1.1em; letter-spacing:2px;">[ _______ ]</b> ');
+            }
+
+            // 處理已洩漏答案的 highlight 標籤
+            const leakedAnswers = bodyClone.querySelectorAll('.keyword-highlight');
+            if (leakedAnswers.length > 0) {
+                 if (!correctAnswerText) correctAnswerText = leakedAnswers[0].textContent.replace(/^[A-Z]\.\s*/, '').trim();
+                 leakedAnswers.forEach(el => {
+                     el.outerHTML = '<b style="color:#0078D4; font-size:1.1em; letter-spacing:2px;">[ _______ ]</b>';
+                 });
+            }
+
+            // 若尚未找到正解，從解答區提取
+            const ansStrong = answerNode.querySelector('.answer');
+            if (ansStrong && !correctAnswerText) {
+                 const highlight = ansStrong.querySelector('.keyword-highlight') || ansStrong;
+                 correctAnswerText = highlight.textContent.replace('答案：', '').replace(/^[A-Z]\.\s*/, '').trim();
+            }
+
+            // 確保選項去重並包含正解
+            distractors = [...new Set(distractors)];
+            if (correctAnswerText && !distractors.includes(correctAnswerText)) distractors.push(correctAnswerText);
+            
+            // 補足4個選項
+            if (correctAnswerText && distractors.length < 4) {
+                 const pool = AI900_TERMS.filter(t => t !== correctAnswerText && !distractors.includes(t));
+                 pool.sort(() => 0.5 - Math.random()); 
+                 while (distractors.length < 4 && pool.length > 0) distractors.push(pool.pop());
+            }
+
+            distractors.sort(() => 0.5 - Math.random());
+
+            // 產生底部單選按鈕
+            if (distractors.length > 0) {
+                 let optionsHtml = '<ul style="margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 16px;">';
+                 const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+                 distractors.forEach((opt, idx) => {
+                     const isCorrect = opt === correctAnswerText;
+                     const inputId = `${qId}_auto_${idx}`;
+                     if (isCorrect) correctAnswers[inputId] = true;
+                     optionsHtml += `<li><label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
+                        <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${opt}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
+                        <span>${optionLetters[idx]}. ${opt}</span>
+                     </label></li>`;
+                 });
+                 optionsHtml += '</ul>';
+                 bodyClone.innerHTML += optionsHtml;
+            }
+            maxPoints = 1;
+          }
+          // 4. ✨多重下拉選單/作答區排序題 - 轉換為 Tap-to-Drop
+          else if (selectCheck.length > 1 || (/(作答區|Answer Area)/i.test(bodyClone.innerText) && !radioCheck.length)) {
+             type = 'dragdrop';
+             let optionPool = new Set();
+             let slotIndex = 0;
+
+             // 處理多重下拉選單
+             if (selectCheck.length > 1) {
+                 selectCheck.forEach(sel => {
+                     const inputKey = `${qId}_dd_${slotIndex}`;
+                     let correctVal = "";
+                     Array.from(sel.options).forEach(opt => {
+                         const val = opt.value || opt.text;
+                         if (val && !val.includes('請選擇') && val.trim() !== '') optionPool.add(val);
+                         if (opt.hasAttribute('selected') || opt.selected) correctVal = val;
+                     });
+                     correctAnswers[inputKey] = correctVal;
+
+                     let slotHtml = `<span class="inline-block align-middle mx-1"><div class="dnd-slot min-w-[140px] min-h-[40px] border-2 border-dashed border-slate-400 bg-white rounded p-1 flex gap-2 flex-wrap cursor-pointer" data-input-id="${inputKey}"></div><input type="hidden" id="${inputKey}" data-key="${inputKey}" value=""></span>`;
+                     sel.outerHTML = slotHtml;
+                     slotIndex++;
+                 });
+                 
+                 const optionsHtml = `
+                    <div class="options-pool p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6 flex flex-wrap gap-2 min-h-[60px] cursor-pointer relative z-10">
+                        <div class="w-full text-sm text-blue-600 font-bold mb-1 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                            請先點擊選項，再點擊下方空格放置 (點擊空格內選項可退回)
+                        </div>
+                        ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${opt}">${opt}</div>`).join('')}
+                    </div>`;
+                 bodyClone.innerHTML = optionsHtml + bodyClone.innerHTML;
+             } 
+             // 處理文字型作答區
+             else {
+                 let html = bodyClone.innerHTML;
+                 const ansAreaRegex = /(作答區[^:：]*[:：]|Answer Area[^:：]*[:：]|依正確順序排列三項[:：]?|依序填入模組[:：]?)([\s\S]*)/i;
+                 const match = html.match(ansAreaRegex);
+                 
+                 if (match) {
+                     const beforeArea = html.substring(0, match.index + match[1].length);
+                     let areaContent = match[2];
+                     
+                     // 提取選項池
+                     let afterOptionsHtml = '';
+                     const optHeaderRegex = /(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i;
+                     const optMatchInside = areaContent.match(optHeaderRegex);
+                     if (optMatchInside) {
+                         afterOptionsHtml = areaContent.substring(optMatchInside.index);
+                         areaContent = areaContent.substring(0, optMatchInside.index);
+                         
+                         let tempDiv = document.createElement('div');
+                         tempDiv.innerHTML = afterOptionsHtml;
+                         tempDiv.innerText.split('\n').forEach(line => {
+                             let t = line.trim().replace(/^[A-D]\.\s*/, '');
+                             if (t && !optHeaderRegex.test(t)) optionPool.add(t);
+                         });
+                     } else {
+                         const optMatchBefore = beforeArea.match(optHeaderRegex);
+                         if (optMatchBefore) {
+                             let optBlock = beforeArea.substring(optMatchBefore.index);
+                             let tempDiv = document.createElement('div');
+                             tempDiv.innerHTML = optBlock;
+                             tempDiv.innerText.split('\n').forEach(line => {
+                                 let t = line.trim().replace(/^[A-D]\.\s*/, '');
+                                 if (t && !optHeaderRegex.test(t) && !/(作答區|Answer Area)/i.test(t)) optionPool.add(t);
+                             });
+                         }
+                     }
+
+                     // 將作答區內容替換為放置框
+                     let tempArea = document.createElement('div');
+                     tempArea.innerHTML = areaContent;
+
+                     Array.from(tempArea.childNodes).forEach(node => {
+                         let text = node.textContent.trim();
+                         if (!text) return;
+                         
+                         let ans = text.replace(/\[\s*[xX]?\s*\]/g, '').replace(/^[^:：]+[:：]\s*/, '').trim();
+                         if (ans && !ans.includes('隱藏此區塊')) {
+                             optionPool.add(ans);
+                             const inputKey = `${qId}_dd_${slotIndex}`;
+                             correctAnswers[inputKey] = ans;
+                             
+                             let wrapper = document.createElement('div');
+                             wrapper.className = 'flex flex-col sm:flex-row sm:items-center gap-2 p-3 my-2 bg-slate-50 border border-slate-200 rounded shadow-sm';
+                             const colonMatch = text.match(/^([^:：]+)[:：]/);
+                             const leftLabel = colonMatch ? colonMatch[1] + ' :' : `順序 ${slotIndex + 1} :`;
+                             
+                             wrapper.innerHTML = `
+                                 <span class="font-bold text-slate-700 min-w-[120px]">${leftLabel}</span>
+                                 <div class="dnd-slot flex-1 min-h-[44px] border-2 border-dashed border-slate-400 bg-white rounded p-1 flex gap-2 flex-wrap cursor-pointer" data-input-id="${inputKey}"></div>
+                                 <input type="hidden" id="${inputKey}" data-key="${inputKey}" value="">
+                             `;
+                             
+                             if (node.nodeType === Node.TEXT_NODE) {
+                                 tempArea.insertBefore(wrapper, node);
+                                 tempArea.removeChild(node);
+                             } else {
+                                 node.replaceWith(wrapper);
+                             }
+                             slotIndex++;
+                         }
+                     });
+
+                     const optionsHtml = `
+                         <div class="options-pool p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4 flex flex-wrap gap-2 min-h-[60px] cursor-pointer">
+                             <div class="w-full text-sm text-blue-600 font-bold mb-1 flex items-center">
+                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                                 請先點擊下方選項，再點擊作答區放置 (點擊作答區內選項可退回)
+                             </div>
+                             ${Array.from(optionPool).map(opt => `<div class="dnd-item px-3 py-2 bg-white border-2 rounded shadow-sm font-semibold text-slate-700 cursor-pointer" data-value="${opt}">${opt}</div>`).join('')}
+                         </div>
+                     `;
+                     bodyClone.innerHTML = optionsHtml + beforeArea.replace(/(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i, '') + tempArea.innerHTML;
+                 }
+             }
+             maxPoints = slotIndex > 0 ? slotIndex : 1;
+          }
+          // 5. 標準選擇題
           else if (radioCheck.length > 0) {
             type = 'choice';
             bodyClone.querySelectorAll('input').forEach((inp, idx) => {
               const key = inp.id || inp.name || inp.value || `opt_${idx}`;
               inp.setAttribute('data-key', key); 
-              
               let isCorrect = inp.hasAttribute('checked') || inp.checked;
-
               const label = bodyClone.querySelector(`label[for="${inp.id}"]`) || inp.closest('label') || inp.closest('li');
               if (label) {
-                 if (/\[\s*[xX]\s*\]/.test(label.textContent)) {
-                    isCorrect = true;
-                 }
+                 if (/\[\s*[xX]\s*\]/.test(label.textContent)) isCorrect = true;
                  label.innerHTML = label.innerHTML.replace(/\[\s*[xX]?\s*\]\s*/g, '');
               }
-
               if (isCorrect) correctAnswers[key] = true;
               inp.removeAttribute('checked');
               inp.checked = false;
             });
             maxPoints = 1;
-          }
-          // 4. 原生下拉選單題
-          else if (selectCheck.length > 0) {
-             type = 'dropdown';
-             maxPoints = selectCheck.length;
-             selectCheck.forEach((sel, idx) => {
-                const key = sel.id || sel.name || `sel_${idx}`;
-                sel.setAttribute('data-key', key);
-                
-                let correctVal = "";
-                Array.from(sel.options).forEach(opt => {
-                   if (opt.hasAttribute('selected') || opt.selected) {
-                      correctVal = opt.value || opt.text;
-                      opt.removeAttribute('selected');
-                      opt.selected = false;
-                   }
-                });
-                if (correctVal) correctAnswers[key] = correctVal;
-                
-                let hasEmpty = Array.from(sel.options).some(opt => opt.value.trim() === '');
-                if (!hasEmpty) {
-                   const defaultOpt = document.createElement('option');
-                   defaultOpt.value = "";
-                   defaultOpt.text = "--- 請選擇 ---";
-                   defaultOpt.disabled = true;
-                   defaultOpt.selected = true;
-                   sel.insertBefore(defaultOpt, sel.firstChild);
-                }
-                sel.value = ""; 
-             });
-          }
-          else {
-             // ✨ 5. 智慧互動式下拉選單轉換 (處理拖曳、填空、作答區)
-             let isAdvancedDragDrop = false;
-             let html = bodyClone.innerHTML;
-             const ansAreaRegex = /(作答區[^:：]*[:：]|Answer Area[^:：]*[:：]|依正確順序排列三項[:：]?|依序填入模組[:：]?)([\s\S]*)/i;
-             const match = html.match(ansAreaRegex);
-             
-             if (match) {
-                 isAdvancedDragDrop = true;
-                 type = 'dragdrop_select';
-                 const beforeArea = html.substring(0, match.index + match[1].length);
-                 let areaContent = match[2];
-                 let optionPool = new Set();
-
-                 // 提取作答區之後的「選項池」
-                 let afterOptionsHtml = '';
-                 const optHeaderRegex = /(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i;
-                 const optMatchInside = areaContent.match(optHeaderRegex);
-                 if (optMatchInside) {
-                     afterOptionsHtml = areaContent.substring(optMatchInside.index);
-                     areaContent = areaContent.substring(0, optMatchInside.index);
-                     
-                     let tempDiv = document.createElement('div');
-                     tempDiv.innerHTML = afterOptionsHtml;
-                     tempDiv.innerText.split('\n').forEach(line => {
-                         let t = line.trim().replace(/^[A-D]\.\s*/, '');
-                         if (t && !optHeaderRegex.test(t)) optionPool.add(t);
-                     });
-                 } else {
-                     // 提取作答區之前的「選項池」
-                     const optMatchBefore = beforeArea.match(optHeaderRegex);
-                     if (optMatchBefore) {
-                         let optBlock = beforeArea.substring(optMatchBefore.index);
-                         let tempDiv = document.createElement('div');
-                         tempDiv.innerHTML = optBlock;
-                         tempDiv.innerText.split('\n').forEach(line => {
-                             let t = line.trim().replace(/^[A-D]\.\s*/, '');
-                             if (t && !optHeaderRegex.test(t) && !/(作答區|Answer Area)/i.test(t)) {
-                                 optionPool.add(t);
-                             }
-                         });
-                     }
-                 }
-
-                 // 解析作答區並轉換為選單
-                 let tempArea = document.createElement('div');
-                 tempArea.innerHTML = areaContent;
-                 let slotIndex = 0;
-
-                 Array.from(tempArea.childNodes).forEach(node => {
-                     if (node.nodeType === Node.TEXT_NODE) {
-                         let text = node.textContent.trim();
-                         if (!text) return;
-                         let wrapper = document.createElement('div');
-                         wrapper.className = 'my-3';
-                         processNodeToDropdown(text, wrapper, optionPool, qId, slotIndex, correctAnswers);
-                         slotIndex++;
-                         tempArea.insertBefore(wrapper, node);
-                         tempArea.removeChild(node);
-                     } else if (node.nodeType === Node.ELEMENT_NODE) {
-                         if (node.tagName === 'BR') return;
-                         let text = node.textContent.trim();
-                         if (!text) return;
-                         processNodeToDropdown(text, node, optionPool, qId, slotIndex, correctAnswers);
-                         slotIndex++;
-                     }
-                 });
-
-                 const finalOptionsHtml = Array.from(optionPool).map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                 tempArea.querySelectorAll('select.dynamic-dropdown').forEach(sel => {
-                     sel.innerHTML += finalOptionsHtml;
-                 });
-
-                 bodyClone.innerHTML = beforeArea + tempArea.innerHTML + afterOptionsHtml;
-                 maxPoints = slotIndex > 0 ? slotIndex : 1;
-             } 
-             else if (bodyClone.querySelectorAll('.keyword-highlight').length >= 1 || /\[\s*_{3,}\s*\]/.test(bodyClone.innerHTML)) {
-                 // 填空題 (Inline Blanks) 轉換為選單
-                 isAdvancedDragDrop = true;
-                 type = 'dragdrop_select';
-                 let optionPool = new Set();
-                 const highlights = bodyClone.querySelectorAll('.keyword-highlight');
-                 maxPoints = highlights.length > 0 ? highlights.length : 1;
-
-                 const optHeaderRegex = /(提供的?[^<]*(?:選項|模組|程式|功能|工作)[^:：]*[:：])/i;
-                 const optMatch = bodyClone.innerHTML.match(optHeaderRegex);
-                 if (optMatch) {
-                      let after = bodyClone.innerHTML.substring(optMatch.index + optMatch[0].length);
-                      let temp = document.createElement('div');
-                      temp.innerHTML = after;
-                      temp.innerText.split('\n').forEach(line => {
-                          let t = line.trim().replace(/^[A-D]\.\s*/, '');
-                          if (t && !t.includes('隱藏此區塊')) optionPool.add(t);
-                      });
-                 }
-
-                 if (highlights.length > 0) {
-                     highlights.forEach((hl, idx) => {
-                         let ans = hl.textContent.replace(/^[A-Z]\.\s*/, '').replace(/\[\s*[xX]?\s*\]/g, '').trim();
-                         if (ans) optionPool.add(ans);
-                         const inputKey = `${qId}_hl_${idx}`;
-                         correctAnswers[inputKey] = ans;
-
-                         hl.outerHTML = `<select data-key="${inputKey}" class="dynamic-dropdown mx-1 p-1.5 border border-slate-300 rounded-md outline-none focus:border-[#0078D4] font-semibold text-[#0078D4] bg-blue-50 cursor-pointer shadow-sm max-w-[200px] align-middle">
-                             <option value="">--- 請選擇 ---</option>
-                         </select>`;
-                     });
-                 }
-
-                 const finalOptionsHtml = Array.from(optionPool).map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                 bodyClone.querySelectorAll('select.dynamic-dropdown').forEach(sel => {
-                     sel.innerHTML += finalOptionsHtml;
-                 });
-             }
-             
-             // 6. AI 智慧單選還原 (Fallback)
-             if (!isAdvancedDragDrop) {
-                type = 'choice';
-                let correctAnswerText = '';
-                let distractors = [];
-
-                const dropdownMatch = bodyClone.innerHTML.match(/\[下拉選單，可見選項：(.*?)\]/);
-                if (dropdownMatch) {
-                  const optionsStr = dropdownMatch[1];
-                  distractors = optionsStr.split('、').map(o => o.replace(/<[^>]+>/g, '').trim());
-                  bodyClone.innerHTML = bodyClone.innerHTML.replace(dropdownMatch[0], ' <b style="color:#0078D4;">[ _______ ]</b> ');
-                }
-
-                const ansStrong = answerNode.querySelector('.answer');
-                if (ansStrong) {
-                  const highlight = ansStrong.querySelector('.keyword-highlight') || ansStrong;
-                  correctAnswerText = highlight.textContent.replace('答案：', '').replace(/^[A-Z]\.\s*/, '').trim();
-                }
-
-                if (correctAnswerText && distractors.length < 4) {
-                   if (!distractors.includes(correctAnswerText)) distractors.push(correctAnswerText);
-                   const pool = AI900_TERMS.filter(t => t !== correctAnswerText && !distractors.includes(t));
-                   pool.sort(() => 0.5 - Math.random()); 
-                   while (distractors.length < 4 && pool.length > 0) {
-                      distractors.push(pool.pop());
-                   }
-                }
-
-                if (correctAnswerText && !distractors.includes(correctAnswerText)) {
-                   distractors[0] = correctAnswerText;
-                }
-
-                distractors.sort(() => 0.5 - Math.random());
-
-                if (distractors.length > 0) {
-                   let optionsHtml = '<ul style="margin-top: 20px;">';
-                   const optionLetters = ['A', 'B', 'C', 'D'];
-                   distractors.forEach((opt, idx) => {
-                      const isCorrect = opt === correctAnswerText;
-                      const inputId = `${qId}_auto_${idx}`;
-                      
-                      if (isCorrect) correctAnswers[inputId] = true;
-                      
-                      optionsHtml += `<li><label style="display: flex; align-items: center; cursor: pointer; gap: 8px; font-weight: normal;">
-                         <input type="radio" name="${qId}_auto" id="${inputId}" data-key="${inputId}" value="${opt}" style="width:1.2rem; height:1.2rem; accent-color:#0078D4;">
-                         <span>${optionLetters[idx]}. ${opt}</span>
-                      </label></li>`;
-                   });
-                   optionsHtml += '</ul>';
-                   bodyClone.innerHTML += optionsHtml;
-                   maxPoints = 1;
-                }
-             }
           }
 
           return {
@@ -14548,34 +14557,6 @@
 
         return parsed;
       };
-
-      // 輔助函式：將作答區節點轉換為下拉選單結構
-      function processNodeToDropdown(text, containerElement, optionPool, qId, slotIndex, correctAnswers) {
-          const colonMatch = text.match(/^([^:：]+)[:：]\s*(.+)$/);
-          let leftPart = '';
-          let rightPart = text;
-          let hasColon = false;
-
-          if (colonMatch) {
-              leftPart = colonMatch[1] + ' : ';
-              rightPart = colonMatch[2];
-              hasColon = true;
-          }
-
-          let ans = rightPart.replace(/\[\s*[xX]?\s*\]/g, '').trim();
-          if (ans && !ans.includes('隱藏此區塊')) {
-              optionPool.add(ans);
-              const inputKey = `${qId}_dd_${slotIndex}`;
-              correctAnswers[inputKey] = ans;
-              containerElement.innerHTML = `
-                  <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 my-2 bg-blue-50 border border-blue-100 rounded-lg shadow-sm">
-                      ${hasColon ? `<span class="font-bold text-slate-700 min-w-[120px]">${leftPart}</span>` : `<span class="font-bold text-slate-500 mr-2">步驟/順序 ${slotIndex + 1} :</span>`}
-                      <select data-key="${inputKey}" class="dynamic-dropdown flex-1 p-2.5 border-2 border-slate-300 rounded-md outline-none focus:border-[#0078D4] font-bold text-[#0078D4] bg-white cursor-pointer transition-colors shadow-sm w-full">
-                          <option value="">--- 請選擇配對 ---</option>
-                      </select>
-                  </div>`;
-          }
-      }
 
       useEffect(() => {
         setTimeout(() => {
@@ -14638,7 +14619,7 @@
       const saveCurrentAnswers = () => {
         if (!formRef.current || !examQuestions[currentIndex]) return;
         const qId = examQuestions[currentIndex].id;
-        const inputs = formRef.current.querySelectorAll('input, select, textarea');
+        const inputs = formRef.current.querySelectorAll('input, textarea'); // select 已被移除，改為 hidden input
         const newState = {};
         
         inputs.forEach(inp => {
@@ -14651,7 +14632,7 @@
                  newState[key] = true;
               }
             }
-          } else if (inp.type === 'text' || inp.tagName === 'SELECT' || inp.tagName === 'TEXTAREA') {
+          } else if (inp.type === 'text' || inp.tagName === 'TEXTAREA' || inp.type === 'hidden') {
             if (inp.value.trim() !== '') {
               const key = inp.getAttribute('data-key');
               newState[key] = inp.tagName === 'TEXTAREA' ? inp.value.trim() : (inp.type === 'text' ? inp.value.trim().toUpperCase() : inp.value);
@@ -14662,28 +14643,90 @@
         setUserAnswers(prev => ({ ...prev, [qId]: newState }));
       };
 
+      // ✨ 點擊配對 (Tap-to-Drop) 核心事件邏輯
       useEffect(() => {
         const formElement = formRef.current;
         if (!formElement || appState !== 'exam') return;
 
         const handleNativeEvent = () => saveCurrentAnswers();
 
+        let selectedItem = null;
+        const handleDndClick = (e) => {
+            const item = e.target.closest('.dnd-item');
+            const slot = e.target.closest('.dnd-slot');
+            const pool = e.target.closest('.options-pool');
+
+            if (item && !slot) {
+                // 在選項池中點擊選項
+                if (selectedItem === item) {
+                    item.classList.remove('selected');
+                    selectedItem = null;
+                } else {
+                    if (selectedItem) selectedItem.classList.remove('selected');
+                    selectedItem = item;
+                    item.classList.add('selected');
+                }
+                e.stopPropagation();
+            } else if (slot) {
+                // 點擊作答空格
+                if (selectedItem) {
+                    // 若空格已有答案，先退回
+                    const existingItem = slot.querySelector('.dnd-item');
+                    const poolEl = formElement.querySelector('.options-pool');
+                    if (existingItem && poolEl) poolEl.appendChild(existingItem);
+                    
+                    slot.appendChild(selectedItem);
+                    selectedItem.classList.remove('selected');
+                    selectedItem = null;
+                    updateDndInput(slot);
+                } else if (item) {
+                    // 點擊空格內的答案 -> 退回選項池
+                    const closestPool = formElement.querySelector('.options-pool');
+                    if (closestPool) {
+                        closestPool.appendChild(item);
+                        updateDndInput(slot);
+                    }
+                }
+                e.stopPropagation();
+            } else if (pool && selectedItem) {
+                // 點擊池子空白處 -> 放下選項
+                pool.appendChild(selectedItem);
+                selectedItem.classList.remove('selected');
+                selectedItem = null;
+                formElement.querySelectorAll('.dnd-slot').forEach(updateDndInput);
+            }
+        };
+
+        const updateDndInput = (slot) => {
+            const inputId = slot.getAttribute('data-input-id');
+            const input = formElement.querySelector('#' + inputId);
+            if (input) {
+                const items = Array.from(slot.querySelectorAll('.dnd-item')).map(el => el.getAttribute('data-value'));
+                input.value = items.join(',');
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        };
+
         formElement.addEventListener('change', handleNativeEvent);
         formElement.addEventListener('input', handleNativeEvent);
+        formElement.addEventListener('click', handleDndClick);
 
         return () => {
           formElement.removeEventListener('change', handleNativeEvent);
           formElement.removeEventListener('input', handleNativeEvent);
+          formElement.removeEventListener('click', handleDndClick);
         };
       }, [currentIndex, appState, examQuestions]);
 
+      // 恢復作答狀態與選項位置
       useEffect(() => {
         setShowCurrentAnswer(false); 
         
         if (appState === 'exam' && formRef.current && examQuestions[currentIndex]) {
           const qId = examQuestions[currentIndex].id;
           const savedState = userAnswers[qId] || {};
-          const inputs = formRef.current.querySelectorAll('input, select, textarea');
+          const inputs = formRef.current.querySelectorAll('input, textarea');
+          const pool = formRef.current.querySelector('.options-pool');
           
           inputs.forEach(inp => {
             if (inp.type === 'radio' || inp.type === 'checkbox') {
@@ -14693,7 +14736,23 @@
                  const key = inp.getAttribute('data-key');
                  inp.checked = !!savedState[key];
               }
-            } else if (inp.type === 'text' || inp.tagName === 'SELECT' || inp.tagName === 'TEXTAREA') {
+            } else if (inp.type === 'hidden' && inp.id.includes('_dd_')) {
+              // 恢復拖曳題位置
+              const key = inp.getAttribute('data-key');
+              const savedVals = (savedState[key] || '').split(',').filter(Boolean);
+              const slot = formRef.current.querySelector(`.dnd-slot[data-input-id="${inp.id}"]`);
+              inp.value = savedState[key] || '';
+              
+              if (slot && pool) {
+                  // 先把目前框裡的丟回池子
+                  Array.from(slot.querySelectorAll('.dnd-item')).forEach(item => pool.appendChild(item));
+                  // 再把存檔的抓進框裡
+                  savedVals.forEach(val => {
+                      const item = Array.from(pool.querySelectorAll('.dnd-item')).find(el => el.getAttribute('data-value') === val);
+                      if (item) slot.appendChild(item);
+                  });
+              }
+            } else if (inp.type === 'text' || inp.tagName === 'TEXTAREA') {
               const key = inp.getAttribute('data-key');
               inp.value = savedState[key] || '';
             }
@@ -14701,6 +14760,7 @@
         }
       }, [currentIndex, appState, userAnswers, examQuestions]);
 
+      // 解析頁面也要恢復拖曳位置並鎖定
       useEffect(() => {
         if (appState === 'results' && resultsContainerRef.current) {
           examQuestions.forEach(q => {
@@ -14708,7 +14768,7 @@
             const container = resultsContainerRef.current.querySelector(`#result-q-${q.id}`);
             if (!container) return;
             
-            const inputs = container.querySelectorAll('input, select, textarea');
+            const inputs = container.querySelectorAll('input, textarea');
             const pool = container.querySelector('.options-pool');
 
             inputs.forEach(inp => {
@@ -14720,7 +14780,6 @@
                    inp.checked = !!uAns[key];
                 }
               } else if (inp.type === 'hidden' && inp.id.includes('_dd_')) {
-                // 恢復結果頁面的 Tap-to-Drop 狀態
                 const key = inp.getAttribute('data-key');
                 const savedVals = (uAns[key] || '').split(',').filter(Boolean);
                 const slot = container.querySelector(`.dnd-slot[data-input-id="${inp.id}"]`);
@@ -14730,7 +14789,7 @@
                         if (item) slot.appendChild(item);
                     });
                 }
-              } else if (inp.type === 'text' || inp.tagName === 'SELECT' || inp.tagName === 'TEXTAREA') {
+              } else if (inp.type === 'text' || inp.tagName === 'TEXTAREA') {
                 const key = inp.getAttribute('data-key');
                 inp.value = uAns[key] || '';
               }
@@ -14759,13 +14818,13 @@
             const cKeys = Object.keys(cAns);
             const isCorrect = uKeys.length === cKeys.length && uKeys.every(k => cKeys.includes(k));
             if (isCorrect) earnedPoints += 1;
-          } else if (q.type === 'dragdrop_select' || q.type === 'dragdrop') {
+          } else if (q.type === 'dragdrop') {
             Object.keys(cAns).forEach(key => {
                const u = (uAns[key] || '').replace(/\s+/g, '').toLowerCase();
                const c = (cAns[key] || '').replace(/\s+/g, '').toLowerCase();
                if (u === c && u !== '') earnedPoints += 1;
             });
-          } else if (q.type === 'yesno' || q.type === 'matching' || q.type === 'dropdown') {
+          } else if (q.type === 'yesno' || q.type === 'matching') {
             Object.keys(cAns).forEach(key => {
               if (uAns[key] === cAns[key]) earnedPoints += 1;
             });
@@ -14804,7 +14863,7 @@
                 <Info className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
                   系統目前載入了 <strong className="text-lg">{allQuestions.length}</strong> 道試題。<br/>
-                  <span className="font-bold text-blue-700">✨ 全新互動介面</span>：拖曳題與填空題已全面升級為「智慧下拉選單」，讓您在手機上也能享受絲滑的作答體驗！
+                  <span className="font-bold text-blue-700">✨ 終極互動升級版</span>：填空題已全部轉換為底部單選模式！配對與拖曳題也升級為「點擊式拖放介面 (Tap-to-Drop)」，手機操作更順手。
                 </div>
               </div>
               
@@ -15105,9 +15164,3 @@
 
       return null;
     }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<AI900PearsonVueSimulator />);
-  </script>
-</body>
-</html>
